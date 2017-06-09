@@ -1,0 +1,33 @@
+{
+  "name": "weibo-crawler",
+  "version": "1.0.0",
+  "description": "crawl weibo by Node.js",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "node dist/demo.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/soonfy/soonfy_weibo.git"
+  },
+  "keywords": [
+    "weibo",
+    "Node.js"
+  ],
+  "author": "soonfy <soonfy@163.com> (https://github.com/soonfy)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/soonfy/soonfy_weibo/issues"
+  },
+  "homepage": "https://github.com/soonfy/soonfy_weibo#readme",
+  "devDependencies": {
+    "@types/cheerio": "^0.22.1",
+    "@types/node": "^7.0.28",
+    "@types/request-promise": "^4.1.33"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.1",
+    "request": "^2.81.0",
+    "request-promise": "^4.2.1"
+  }
+}
