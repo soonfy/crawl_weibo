@@ -455,6 +455,7 @@ const parse_articles = (body) => {
     let $ = cheerio.load(body);
     let divs = $('.WB_detail');
     divs.map((i, v) => {
+      let referer;
       let _divs = $(v).find('.WB_expand');
       if (_divs.length === 1) {
         let aa = _divs.children('.WB_info').children('a').first();
@@ -465,20 +466,27 @@ const parse_articles = (body) => {
         let aas = _divs.children('.WB_text').children('a');
         let address, topics = [], atnames = [];
         aas.map((ii, vv) => {
+          let usercard = $(vv).attr('usercard');
           let extra = $(vv).attr('extra-data');
           let text = $(vv).text().trim();
           if ($(vv).find('.ficon_cd_place').length === 1) {
             address = text.slice(1);
-          } else if (/type=topic/.test(extra)) {
+          } else if (/type=topic/.test(extra) || /type=topic/.test(usercard)) {
             topics.push(text);
-          } else if (/type=atname/.test(extra)) {
+          } else if (/type=atname/.test(extra) || /type=atname/.test(usercard)) {
             atnames.push(text);
+          } else if ($(vv).find('.ficon_cd_img').length === 1) {
+            console.log('图片内容');
+          } else {
+            // console.log($(vv).html());
+            // console.log($(vv).text());
           }
         })
         aas.remove();
         let summary = _divs.children('.WB_text').text().trim();
         aas = _divs.find('.WB_from').children('a');
         let publish_time = new Date(aas.first().attr('title'));
+        let uri = 'http://weibo.com' + aas.first().attr('href');
         let publish_source;
         if (aas.length === 2) {
           publish_source = aas.last().text().trim();
@@ -491,6 +499,7 @@ const parse_articles = (body) => {
           nickname,
           user_id,
           article_id,
+          uri,
           content,
           summary,
           address,
@@ -502,6 +511,7 @@ const parse_articles = (body) => {
           comment,
           like
         }
+        referer = article_id;
         articles.push(article);
         _divs.remove();
       }
@@ -511,6 +521,7 @@ const parse_articles = (body) => {
       let nickname = aa.text().trim();
       let aas = $(v).find('.WB_from').children('a');
       let publish_time = new Date(aas.first().attr('title'));
+      let uri = 'http://weibo.com' + aas.first().attr('href');
       let publish_source;
       if (aas.length === 2) {
         publish_source = aas.last().text().trim();
@@ -519,16 +530,23 @@ const parse_articles = (body) => {
       aas = $(v).children('.WB_text').children('a');
       let address, topics = [], atnames = [];
       aas.map((i, v) => {
-        let extra = $(v).attr('usercard');
+        let usercard = $(v).attr('usercard');
+        let extra = $(v).attr('extra-data');
         let text = $(v).text().trim();
         if ($(v).find('.ficon_cd_place').length === 1) {
           address = text.slice(1);
-        } else if (/type=topic/.test(extra)) {
+        } else if (/type=topic/.test(extra) || /type=topic/.test(usercard)) {
           topics.push(text);
-        } else if (/type=atname/.test(extra)) {
+        } else if (/type=atname/.test(extra) || /type=atname/.test(usercard)) {
           atnames.push(text);
+        } else if ($(v).find('.ficon_cd_img').length === 1) {
+          console.log('图片内容');
+        } else {
+          // console.log($(v).html());
+          // console.log($(v).text());
         }
       })
+      aas
       aas.remove();
       let summary = $(v).children('.WB_text').text().trim();
       let lis = $(v).parent().parent().find('.WB_handle').find('li');
@@ -539,6 +557,7 @@ const parse_articles = (body) => {
         nickname,
         user_id,
         article_id,
+        uri,
         content,
         summary,
         address,
@@ -548,7 +567,8 @@ const parse_articles = (body) => {
         publish_source,
         repost,
         comment,
-        like
+        like,
+        referer
       }
       articles.push(article);
     })
@@ -558,28 +578,66 @@ const parse_articles = (body) => {
     console.error(error);
   }
 }
-const crawl_articles_byid = async (id) => {
+const crawl_articles_byid = async (id, username, page) => {
   try {
     console.log(id);
     let DOMAIN = '100505';
-    let uri = 'http://weibo.com/p/aj/v6/mblog/mbloglist?ajwvr=6&domain=100505&from=myfollow_all&is_all=1&pagebar=0&pl_name=Pl_Official_MyProfileFeed__22&id=1005052285119444&script_uri=/dotacold&feed_type=0&page=1&pre_page=1&domain_op=100505&__rnd=1497011591262';
-    uri = 'http://weibo.com/p/aj/v6/mblog/mbloglist?ajwvr=6&domain=100505&from=myfollow_all&is_all=1&pagebar=0&pl_name=Pl_Official_MyProfileFeed__22&id=1005052285119444&script_uri=/dotacold&feed_type=0&page=1&pre_page=1&domain_op=100505&__rnd=1497011591262&sudaref=weibo.com&retcode=6102';
-    let options = {
-      url: uri,
-      method: 'GET',
-      // gzip: true,
-      timeout: 1000 * 60 * 2,
-      headers: {
-        "Host": 'weibo.com',
-        "User-Agent": 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.81 Safari/537.36',
-        "Cookie": 'SINAGLOBAL=2814765473589.067.1484875273060; UM_distinctid=15bad72a54e0-00d24291aaf45a-143e655c-1aeaa0-15bad72a54fbcd; _s_tentry=baike.baidu.com; Apache=7379909336866.972.1494990148978; ULV=1494990149138:24:4:1:7379909336866.972.1494990148978:1494582703733; YF-Ugrow-G0=ad83bc19c1269e709f753b172bddb094; YF-V5-G0=5f9bd778c31f9e6f413e97a1d464047a; YF-Page-G0=091b90e49b7b3ab2860004fba404a078; SSOLoginState=1495518028; login_sid_t=b369960338a09b7d9555a79cddb2a7b2; WBtopGlobal_register_version=4641949e9f3439df; wvr=6; SCF=AtsqdIRs1koTLva1VnsJpX-bIJ1gGWgh3aR67Hj41UVxudrO_U6jQ606aUasOnS1ofkBtar4s-j0jQoDhiQty6Q.; SUB=_2A250M-GPDeRhGeBO61IQ9yvEyT2IHXVXSVRHrDV8PUNbmtBeLUPVkW9-y_LcjSMOmjep_pmoj7n9tZFkjA..; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WWauxJAp_Sb5HC3ovdO-gxG5JpX5KMhUgL.Foq7eh5pS0-Reo22dJLoI7DB-XHkMcvadJ94; SUHB=0LcizStCraDvHy; ALF=1528350045; UOR=,,login.sina.com.cn'
+    let sub_pages = [0, 1, 2];
+    let status = 0, results = [];
+
+    // page = 1
+    // http://weibo.com/p/aj/v6/mblog/mbloglist?ajwvr=6&domain=100505&refer_flag=0000015010_&from=feed&loc=nickname&is_all=1&pagebar=0&pl_name=Pl_Official_MyProfileFeed__22&id=1005052285119444&script_uri=/dotacold&feed_type=0&page=1&pre_page=0&domain_op=100505&__rnd=1497104412135
+    // http://weibo.com/p/aj/v6/mblog/mbloglist?ajwvr=6&domain=100505&refer_flag=0000015010_&from=feed&loc=nickname&is_all=1&pagebar=0&pl_name=Pl_Official_MyProfileFeed__22&id=1005052285119444&script_uri=/dotacold&feed_type=0&page=1&pre_page=1&domain_op=100505&__rnd=1497104412135
+    // http://weibo.com/p/aj/v6/mblog/mbloglist?ajwvr=6&domain=100505&refer_flag=0000015010_&from=feed&loc=nickname&is_all=1&pagebar=1&pl_name=Pl_Official_MyProfileFeed__22&id=1005052285119444&script_uri=/dotacold&feed_type=0&page=1&pre_page=1&domain_op=100505&__rnd=1497104412135
+    // page = 2
+    // http://weibo.com/p/aj/v6/mblog/mbloglist?ajwvr=6&domain=100505&refer_flag=0000015010_&from=feed&loc=nickname&is_all=1&pagebar=0&pl_name=Pl_Official_MyProfileFeed__22&id=1005052285119444&script_uri=/dotacold&feed_type=0&page=2&pre_page=1&domain_op=100505&__rnd=1497104412135
+    // http://weibo.com/p/aj/v6/mblog/mbloglist?ajwvr=6&domain=100505&refer_flag=0000015010_&from=feed&loc=nickname&is_all=1&pagebar=0&pl_name=Pl_Official_MyProfileFeed__22&id=1005052285119444&script_uri=/dotacold&feed_type=0&page=2&pre_page=2&domain_op=100505&__rnd=1497104412135
+    // http://weibo.com/p/aj/v6/mblog/mbloglist?ajwvr=6&domain=100505&refer_flag=0000015010_&from=feed&loc=nickname&is_all=1&pagebar=1&pl_name=Pl_Official_MyProfileFeed__22&id=1005052285119444&script_uri=/dotacold&feed_type=0&page=2&pre_page=2&domain_op=100505&__rnd=1497104412135
+
+    for (let sub_page of sub_pages) {
+      let pagebar = 0, pre_page = page - 1;
+      if (sub_page !== 0) {
+        pagebar = sub_page - 1;
+        pre_page = page;
+      }
+      let uri = `http://weibo.com/p/aj/v6/mblog/mbloglist?ajwvr=6&domain=${DOMAIN}&refer_flag=0000015010_&from=feed&loc=nickname&is_all=1&pagebar=${pagebar}&pl_name=Pl_Official_MyProfileFeed__22&id=${DOMAIN}${id}&script_uri=/${username}&feed_type=0&page=${page}&pre_page=${pre_page}&domain_op=${DOMAIN}&__rnd=${Date.now()}`;
+      console.log(uri);
+      let options = {
+        url: uri,
+        method: 'GET',
+        // gzip: true,
+        timeout: 1000 * 60 * 2,
+        headers: {
+          "Host": 'weibo.com',
+          "User-Agent": 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.81 Safari/537.36',
+          "Cookie": 'SINAGLOBAL=2814765473589.067.1484875273060; UM_distinctid=15bad72a54e0-00d24291aaf45a-143e655c-1aeaa0-15bad72a54fbcd; _s_tentry=baike.baidu.com; Apache=7379909336866.972.1494990148978; ULV=1494990149138:24:4:1:7379909336866.972.1494990148978:1494582703733; YF-Ugrow-G0=ad83bc19c1269e709f753b172bddb094; YF-V5-G0=5f9bd778c31f9e6f413e97a1d464047a; YF-Page-G0=091b90e49b7b3ab2860004fba404a078; SSOLoginState=1495518028; login_sid_t=b369960338a09b7d9555a79cddb2a7b2; WBtopGlobal_register_version=4641949e9f3439df; wvr=6; SCF=AtsqdIRs1koTLva1VnsJpX-bIJ1gGWgh3aR67Hj41UVxudrO_U6jQ606aUasOnS1ofkBtar4s-j0jQoDhiQty6Q.; SUB=_2A250M-GPDeRhGeBO61IQ9yvEyT2IHXVXSVRHrDV8PUNbmtBeLUPVkW9-y_LcjSMOmjep_pmoj7n9tZFkjA..; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WWauxJAp_Sb5HC3ovdO-gxG5JpX5KMhUgL.Foq7eh5pS0-Reo22dJLoI7DB-XHkMcvadJ94; SUHB=0LcizStCraDvHy; ALF=1528350045; UOR=,,login.sina.com.cn'
+        }
+      }
+      let body = await rp(options);
+      let match = body.match(reg_location);
+      if (match) {
+        options.url = match[1];
+        body = await rp(options);
+      }
+      // console.log(body);
+      let data = JSON.parse(body);
+      let articles = parse_articles(data.data);
+      // console.log(articles);
+      // console.log(articles.length);
+      results = results.concat(articles);
+      let $ = cheerio.load(body);
+      console.log(body);
+      console.log($('a.next').length);
+      if ($('.next').length === 1 && $('.next').text().trim() === '下一页') {
+        status = 1;
       }
     }
-    let body = await rp(options);
-    // console.log(body);
-    let data = JSON.parse(body);
-    let articles = parse_articles(data.data);
-    console.log(articles.length);
+    console.log(status);
+    // console.log(results);
+    return {
+      status,
+      results
+    }
   } catch (error) {
     console.error(error);
   }
@@ -590,4 +648,4 @@ const crawl_articles_byid = async (id) => {
 // crawl_weiboer_byid(1239246050);
 // crawl_weiboer_byuri('http://weibo.com/kujian?refer_flag=0000015010_&from=feed&loc=nickname&is_all=1');
 // crawl_weiboer_byuri(process.argv[2]);
-crawl_articles_byid(6000175821);
+crawl_articles_byid(2285119444, 'dotacold', 11);
