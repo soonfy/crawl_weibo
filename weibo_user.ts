@@ -160,7 +160,7 @@ const parse_userinfo = (script) => {
 
 const parse_userrelationship = (script) => {
   try {
-    if (script['domid'] === 'Pl_Core_T8CustomTriColumn__3') {
+    if (script['domid'].match(/Pl_Core_T8CustomTriColumn__/)) {
       let $ = cheerio.load(script['html']);
       let tds = $('td');
       let follow, fan, microblog;
@@ -180,6 +180,51 @@ const parse_userrelationship = (script) => {
     console.error(error);
   }
 }
+
+const parse_userfollow = (script) => {
+  try {
+    if (script['domid'].match(/Pl_Official_HisRelation__/)) {
+      let $ = cheerio.load(script['html']);
+      let lis = $('li.follow_item');
+      let users = lis.map((i, v) => {
+        let data = $(v).attr('action-data');
+        let id = data.match(/uid\=(\d+)\&/)[1];
+        let username = data.match(/fnick\=([^&]+)\&/)[1];
+        let match = data.match(/\&sex\=(\w+)/)[1];
+        let sex, follow, fan, microblog;
+        if (match.toLowerCase() === 'm') {
+          sex = 1;
+        } else if (match.toLowerCase() === 'f') {
+          sex = 2;
+        } else {
+          process.exit();
+        }
+        let spans = $(v).find('.info_connect span');
+        spans.map((ii, vv) => {
+          let text = $(vv).text(),
+          count = text.replace(/\D/g, '');
+          if (text.includes('关注')) {
+            follow = count;
+          } else if (text.includes('粉丝')) {
+            fan = count;
+          } else if (text.includes('微博')) {
+            microblog = count;
+          }
+        })
+        let address = $(v).find('.info_add span').text();
+        let signature = $(v).find('.info_intro span').text();
+        let from = $(v).find('.info_from a').text();
+        return {
+          id, username, sex, follow, fan, microblog, address, signature, from
+        }
+      })
+      return users;
+    }
+  } catch (error) {
+    console.error(error);
+  }
+}
+
 
 const crawl_weiboer_byid = async (id) => {
   try {
@@ -312,124 +357,7 @@ const crawl_weiboer_byid = async (id) => {
           process.exit();
           break;
       }
-
-      /** 
-      switch (key) {
-        case 'Pl_Official_Headerv6__1':
-          console.log('...页头信息...');
-          let userhead = parse_userhead(v);
-          console.log(userhead);
-          break;
-        case 'Pl_Core_UserInfo__5':
-        case 'Pl_Core_UserInfo__6':
-          console.log('...用户信息...');
-          let userinfo = parse_userinfo(v);
-          console.log(userinfo);
-          break;
-        case 'Pl_Core_T8CustomTriColumn__3':
-          console.log('...用户关系...');
-          let userrelationship = parse_userrelationship(v);
-          console.log(userrelationship);
-          break;
-        case 'Pl_Official_MyProfileFeed__20':
-        case 'Pl_Official_MyProfileFeed__22':
-        case 'Pl_Official_MyProfileFeed__24':
-          console.log('...微博内容...');
-          break;
-
-        case 'pl_common_top':
-          console.log('...顶部导航...');
-          break;
-        case 'pl_common_footer':
-          console.log('...页脚信息...');
-          break;
-        case 'plc_frame':
-          console.log('...页面框架...');
-          break;
-        case 'plc_main':
-          console.log('...内容结构...');
-          break;
-        case 'Pl_Official_Nav__2':
-          console.log('...二级导航...');
-          break;
-        case 'Pl_Core_PicText__20':
-          console.log('...二级导航作品...');
-          break;
-        case 'Pl_Core_CustTab__2':
-          console.log('...二级导航服务...');
-          break;
-        case 'Pl_Official_LikeMerge__16':
-          console.log('...点赞微博...');
-          break;
-        case 'Pl_Core_UserGrid__8':
-        case 'Pl_Core_UserGrid__9':
-        case 'Pl_Core_UserGrid__10':
-        case 'Pl_Core_UserGrid__17':
-          console.log('...微关系...');
-          break;
-        case 'Pl_Core_FansGroups__8':
-        case 'Pl_Core_FansGroups__9':
-          console.log('...粉丝群...');
-          break;
-        case 'Pl_Core_RecommendFeed__18':
-        case 'Pl_Core_RecommendFeed__19':
-        case 'Pl_Core_RecommendFeed__20':
-          console.log('...相关推荐...');
-          break;
-        case 'Pl_Third_Inline__10':
-        case 'Pl_Third_Inline__11':
-        case 'Pl_Third_Inline__12':
-        case 'Pl_Third_Inline__16':
-          console.log('...相册...');
-          break;
-        case 'Pl_Official_TimeBase__21':
-        case 'Pl_Official_TimeBase__23':
-        case 'Pl_Official_TimeBase__25':
-          console.log('...时间轴...');
-          break;
-        case 'Pl_Core_Ut1UserList__14':
-        case 'Pl_Core_Ut1UserList__15':
-          console.log('...粉丝也关注...');
-          break;
-        case 'Pl_Core_Pt13PicText__9':
-        case 'Pl_Core_Pt13PicText__10':
-        case 'Pl_Core_Pt13PicText__11':
-          console.log('...文章...');
-          break;
-        case 'Pl_Core_Pt6Rank__8':
-          console.log('...乐迷榜...');
-          break;
-        case 'Pl_Core_P6Video__12':
-          console.log('...视频...');
-          break;
-        case 'Pl_Core_PicTextList__6':
-          console.log('...视频...');
-          break;
-        case 'Pl_Core_P7MultiPicPlay__20':
-          console.log('...图片墙...');
-          break;
-
-        case 'Pl_Core_Pt6Rank__11':
-        case 'Pl_Core_Pt6Rank__12':
-        case 'Pl_Core_Pt6Rank__13':
-        case 'Pl_Official_ProfileFeedNav__19':
-        case 'Pl_Official_ProfileFeedNav__21':
-        case 'Pl_Official_ProfileFeedNav__23':
-          console.log(v['domid']);
-          console.log('...不知道什么鬼...');
-          break;
-
-        default:
-          console.error('...未做处理的script标签...');
-          console.error(v['domid']);
-          console.error(v);
-          process.exit();
-          break;
-      }
-      */
-
     })
-    console.log('over');
     console.log(scripts.length);
   } catch (error) {
     console.error(error);
@@ -578,6 +506,7 @@ const parse_articles = (body) => {
     console.error(error);
   }
 }
+
 const crawl_articles_byid = async (id, username, page) => {
   try {
     console.log(id);
@@ -623,21 +552,126 @@ const crawl_articles_byid = async (id, username, page) => {
       let data = JSON.parse(body);
       let articles = parse_articles(data.data);
       // console.log(articles);
-      // console.log(articles.length);
+      console.log(articles.length);
       results = results.concat(articles);
-      let $ = cheerio.load(body);
-      console.log(body);
-      console.log($('a.next').length);
-      if ($('.next').length === 1 && $('.next').text().trim() === '下一页') {
+      let $ = cheerio.load(data.data);
+      // console.log(body);
+      // 下一页
+      if ($('a.next').last().text() === '下一页') {
         status = 1;
       }
     }
     console.log(status);
-    // console.log(results);
+    console.log(results.length);
     return {
       status,
       results
     }
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+const crawl_articles_byuri = async (uri, page) => {
+  try {
+    let id = await crawl_weiboid_byuri(uri);
+    let articles = await crawl_articles_byid(id, '', page);
+    console.log(articles);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+const crawl_follow_byid = async (id) => {
+  try {
+    let uri = `http://weibo.com/p/100505${id}/follow?from=page_100505&wvr=6&mod=headfollow#place`;
+    console.log(uri);
+    let options = {
+      url: uri,
+      method: 'GET',
+      // gzip: true,
+      timeout: 1000 * 60 * 2,
+      headers: {
+        "Host": 'weibo.com',
+        "User-Agent": 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.81 Safari/537.36',
+        "Cookie": 'SINAGLOBAL=2814765473589.067.1484875273060; UM_distinctid=15bad72a54e0-00d24291aaf45a-143e655c-1aeaa0-15bad72a54fbcd; _s_tentry=baike.baidu.com; Apache=7379909336866.972.1494990148978; ULV=1494990149138:24:4:1:7379909336866.972.1494990148978:1494582703733; YF-Ugrow-G0=ad83bc19c1269e709f753b172bddb094; YF-V5-G0=5f9bd778c31f9e6f413e97a1d464047a; YF-Page-G0=091b90e49b7b3ab2860004fba404a078; SSOLoginState=1495518028; login_sid_t=b369960338a09b7d9555a79cddb2a7b2; WBtopGlobal_register_version=4641949e9f3439df; wvr=6; UOR=,,login.sina.com.cn; SCF=AtsqdIRs1koTLva1VnsJpX-bIJ1gGWgh3aR67Hj41UVxa-1z07wlpmxpRHvT9uhccXlpq0U7GFda-uMiIIW3wgk.; SUB=_2A250Ol_GDeRhGeBO61IQ9yvEyT2IHXVXTjYOrDV8PUNbmtBeLRL4kW8D0BRgV_59PqS1gXFmtSki2atbZA..; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WWauxJAp_Sb5HC3ovdO-gxG5JpX5KMhUgL.Foq7eh5pS0-Reo22dJLoI7DB-XHkMcvadJ94; SUHB=0rrL07k8Jb8gSq; ALF=1528783636; WBStorage=5ea47215d42b077f|undefined'
+      }
+    }
+    let body = await rp(options);
+    let match = body.match(reg_location);
+    if (match) {
+      options.url = match[1];
+      body = await rp(options);
+    }
+    // console.log(body);
+    let $ = cheerio.load(body);
+    let scripts = $('script');
+    scripts = scripts.map((i, v) => {
+      let html = $(v).html();
+      let match = html.match(reg_fm);
+      if (match) {
+        let data = JSON.parse(match[1]);
+        return data;
+      }
+    })
+    scripts = scripts.filter((i, v) => {
+      if ('html' in v) {
+        return true;
+      }
+    })
+    console.log(scripts.length);
+    scripts.map((i, v) => {
+      console.log(i);
+      // console.log(v);
+      let key = v['domid'];
+      switch (true) {
+        case /Pl_Official_Headerv6__/.test(key):
+          console.log('...页头信息...');
+          let userhead = parse_userhead(v);
+          console.log(userhead);
+          break;
+        case /Pl_Official_HisRelation__/.test(key):
+          console.log('...关注信息...');
+          let follows = parse_userfollow(v);
+          console.log(follows.length);
+          break;
+        case /Pl_Official_HisRelationNav__/.test(key):
+          console.log('...共同关注...');
+          // let co_follows = parse_userfollow(v);
+          // console.log(co_follows);
+          break;
+
+        case /pl_common_top/.test(key):
+          console.log('...顶部导航...');
+          break;
+        case /pl_common_footer/.test(key):
+          console.log('...页脚信息...');
+          break;
+        case /plc_frame/.test(key):
+          console.log('...页面框架...');
+          break;
+        case /plc_main/.test(key):
+          console.log('...内容结构...');
+          break;
+        case /Pl_Official_Nav__/.test(key):
+          console.log('...二级导航...');
+          break;
+
+        case /Pl_Official_ProfileFeedNav__/.test(key):
+          console.log(v['domid']);
+          console.log('...不知道什么鬼...');
+          break;
+
+
+        default:
+          console.error('...未做处理的script标签...');
+          console.error(v['domid']);
+          console.error(v);
+          process.exit();
+          break;
+      }
+    })
+    console.log(scripts.length);
   } catch (error) {
     console.error(error);
   }
@@ -648,4 +682,6 @@ const crawl_articles_byid = async (id, username, page) => {
 // crawl_weiboer_byid(1239246050);
 // crawl_weiboer_byuri('http://weibo.com/kujian?refer_flag=0000015010_&from=feed&loc=nickname&is_all=1');
 // crawl_weiboer_byuri(process.argv[2]);
-crawl_articles_byid(2285119444, 'dotacold', 11);
+// crawl_articles_byid(2285119444, 'dotacold', 12);
+// crawl_articles_byuri('http://weibo.com/tongdaodashu?refer_flag=0000015010_&from=feed&loc=nickname', 1);
+crawl_follow_byid(2285119444);
