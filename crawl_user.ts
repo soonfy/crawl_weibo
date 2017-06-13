@@ -20,7 +20,6 @@ const crawl_userinfo = async (id) => {
   } catch (error) {
     console.error(error);
   }
-  process.exit();
 }
 
 // crawl_userinfo('2285119444');
@@ -49,10 +48,9 @@ const crawl_userfollows = async (id) => {
   } catch (error) {
     console.error(error);
   }
-  process.exit();
 }
 
-crawl_userfollows('2285119444');
+// crawl_userfollows('2285119444');
 
 const crawl_userfans = async (id) => {
   try {
@@ -80,7 +78,6 @@ const crawl_userfans = async (id) => {
   } catch (error) {
     console.error(error);
   }
-  process.exit();
 }
 
 // crawl_userfans('2285119444');
