@@ -1,10 +1,21 @@
 import * as rp from 'request-promise';
 import * as cheerio from 'cheerio';
+import * as _ from 'lodash';
 
 const reg_uid = /\$CONFIG\[\'oid\'\]\=\'([\w\d]+)\'/;
 const reg_fm = /FM.view\((.+)\)/;
 const reg_location = /location\.replace\(\"(.+)\"\)\;/;
-// 'http://weibo.com/u/uid?is_all=1';
+
+const obj_filter = (obj) => {
+  let res = {};
+  for (let attr in obj) {
+    let temp = obj[attr];
+    if (temp !== undefined && temp !== null) {
+      res[attr] = temp;
+    }
+  }
+  return res;
+}
 
 const crawl_weiboid_byuri = async (uri) => {
   try {
@@ -40,9 +51,8 @@ const crawl_weiboid_byuri = async (uri) => {
 const parse_userhead = (script) => {
   try {
     if (script['domid'].match(/Pl_Official_Headerv6__/)) {
-      console.log(script['html']);
       let $ = cheerio.load(script['html']);
-      let username = $('h1').text().trim();
+      let name = $('h1').text().trim();
       let signature = $('.pf_intro').eq(0).text().trim();
       let sex = 0;
       if ($('.icon_pf_male').length === 1) {
@@ -52,7 +62,8 @@ const parse_userhead = (script) => {
       } else {
         console.error('未知性别');
       }
-      return { username, signature, sex }
+      let resp = obj_filter({ name, signature, sex });
+      return resp;
     }
   } catch (error) {
     console.error(error);
@@ -67,58 +78,56 @@ const parse_userinfo = (script) => {
       level = level.replace(/\D/g, '');
       let signature = $('.info').eq(0).text().trim();
       let lis = $('li');
-      let address, birth, info, personallink, bloglink, baidu, education, industry, sexlove, relationship, tags = [], otherlinks = [];
+      let address, birth, info, personalname, personallink, bloglink, baidu, education, industry, sexlove, relationship, tags, otherlinks;
       lis.map((i, v) => {
         if ($(v).find('.ficon_cd_place').length === 1) {
-          console.log('...地址...');
+          // console.log('...地址...');
           address = $(v).children('span').last().text().trim();
         } else if ($(v).find('.ficon_constellation').length === 1) {
-          console.log('...生日...');
+          // console.log('...生日...');
           birth = $(v).children('span').last().text().trim();
         } else if ($(v).find('.ficon_pinfo').length === 1) {
-          console.log('...简介...');
+          // console.log('...简介...');
           info = $(v).children('span').last().text().trim();
           info = info.replace(/简介：/, '').trim();
         } else if ($(v).find('.ficon_link').length === 1) {
-          console.log('...域名...');
+          // console.log('...域名...');
           let temp = $(v).children('span').last().text().trim();
           if (temp.includes('个性域名')) {
-            console.log('个性域名');
-            personallink = {
-              name: temp.replace(/个性域名：/, '').trim(),
-              link: $(v).find('a').first().attr('href').trim()
-            }
+            // console.log('...个性域名...');
+            personalname = temp.replace(/个性域名：/, '').trim();
+            personallink = $(v).find('a').first().attr('href').trim();
           } else if (temp.includes('博客地址')) {
-            console.log('博客地址');
+            // console.log('...博客地址...');
             bloglink = temp.replace(/博客地址：/, '').trim();
           } else {
-            console.error('未处理的个性域名');
+            console.error('...未处理的个性域名...');
             process.exit();
           }
         } else if ($(v).find('.W_icon_level').length === 1) {
-          console.log('...等级...');
+          // console.log('...等级...');
           level = $(v).children('span').last().text().trim();
           level = level.replace(/\D/g, '').trim();
         } else if ($(v).find('.pinfo_icon_baidu').length === 1) {
-          console.log('...百度资料...');
+          // console.log('...百度资料...');
           $(v).find('.S_txt2').remove();
           $(v).find('a').remove();
           baidu = $(v).children('span').last().text().trim();
         } else if ($(v).find('.ficon_edu').length === 1) {
-          console.log('...毕业院校...');
+          // console.log('...毕业院校...');
           education = $(v).find('a').text().trim();
         } else if ($(v).find('.ficon_bag').length === 1) {
-          console.log('...行业类别...');
+          // console.log('...行业类别...');
           $(v).find('.S_txt2').remove();
           industry = $(v).children('span').last().text().trim();
         } else if ($(v).find('.ficon_sexual').length === 1) {
-          console.log('...性取向...');
+          // console.log('...性取向...');
           sexlove = $(v).children('span').last().text().trim();
         } else if ($(v).find('.ficon_relationship').length === 1) {
-          console.log('...感情状况...');
+          // console.log('...感情状况...');
           relationship = $(v).children('span').last().text().trim();
         } else if ($(v).find('.ficon_cd_coupon').length === 1) {
-          console.log('...标签/友情链接...');
+          // console.log('...标签/友情链接...');
           let aas = $(v).find('a');
           let _data = [];
           aas.map((ii, vv) => {
@@ -130,7 +139,6 @@ const parse_userinfo = (script) => {
           $(v).find('span').first().remove();
           $(v).find('a').remove();
           let temp = $(v).text().trim();
-          console.log(temp);
           switch (temp) {
             case '标签':
               tags = _data;
@@ -140,6 +148,7 @@ const parse_userinfo = (script) => {
               break;
             default:
               console.error('未处理的链接标签');
+              console.error(temp);
               process.exit();
               break;
           }
@@ -151,7 +160,8 @@ const parse_userinfo = (script) => {
           process.exit();
         }
       })
-      return { level, signature, address, birth, info, personallink, bloglink, baidu, education, industry, sexlove, relationship, tags, otherlinks }
+      let resp = obj_filter({ level, signature, address, birth, info, personalname, personallink, bloglink, baidu, education, industry, sexlove, relationship, tags, otherlinks });
+      return resp;
     }
   } catch (error) {
     console.error(error);
@@ -163,18 +173,19 @@ const parse_userrelationship = (script) => {
     if (script['domid'].match(/Pl_Core_T8CustomTriColumn__/)) {
       let $ = cheerio.load(script['html']);
       let tds = $('td');
-      let follow, fan, microblog;
+      let follows, fans, microblogs;
       tds.map((i, v) => {
         let text = $(v).text();
         if (text.includes('关注')) {
-          follow = text.replace(/\D/g, '');
+          follows = text.replace(/\D/g, '');
         } else if (text.includes('粉丝')) {
-          fan = text.replace(/\D/g, '');
+          fans = text.replace(/\D/g, '');
         } else {
-          microblog = text.replace(/\D/g, '');
+          microblogs = text.replace(/\D/g, '');
         }
       })
-      return { follow, fan, microblog }
+      let resp = obj_filter({ follows, fans, microblogs });
+      return resp;
     }
   } catch (error) {
     console.error(error);
@@ -186,11 +197,11 @@ const parse_userfollow = (script) => {
     let $ = cheerio.load(script['html']);
     let lis = $('li.follow_item');
     let users = lis.map((i, v) => {
-      let data = $(v).attr('action-data');
-      let id = data.match(/uid\=(\d+)\&/)[1];
-      let username = data.match(/fnick\=([^&]+)\&/)[1];
+      let data = $(v).attr('action-data').trim();
+      let uid = data.match(/uid\=(\d+)\&/)[1];
+      let name = data.match(/fnick\=([^&]+)\&/)[1];
       let match = data.match(/\&sex\=(\w+)/)[1];
-      let sex, follow, fan, microblog;
+      let sex, follows, fans, microblogs;
       if (match.toLowerCase() === 'm') {
         sex = 1;
       } else if (match.toLowerCase() === 'f') {
@@ -201,21 +212,20 @@ const parse_userfollow = (script) => {
       let spans = $(v).find('.info_connect span');
       spans.map((ii, vv) => {
         let text = $(vv).text(),
-          count = text.replace(/\D/g, '');
+          count = text.replace(/\D/g, '').trim();
         if (text.includes('关注')) {
-          follow = count;
+          follows = count;
         } else if (text.includes('粉丝')) {
-          fan = count;
+          fans = count;
         } else if (text.includes('微博')) {
-          microblog = count;
+          microblogs = count;
         }
       })
-      let address = $(v).find('.info_add span').text();
-      let signature = $(v).find('.info_intro span').text();
-      let from = $(v).find('.info_from a').text();
-      return {
-        id, username, sex, follow, fan, microblog, address, signature, from
-      }
+      let address = $(v).find('.info_add span').text().trim();
+      let signature = $(v).find('.info_intro span').text().trim();
+      let from = $(v).find('.info_from a').text().trim();
+      let resp = obj_filter({uid, name, sex, follows, fans, microblogs, address, signature, from})
+      return resp;
     })
     return users;
   } catch (error) {
@@ -227,6 +237,9 @@ const parse_userfollow = (script) => {
 const crawl_weiboer_byid = async (id) => {
   try {
     console.log(id);
+    let user = {
+      _id: id
+    };
     let uri = `http://weibo.com/u/${id}?is_all=1&sudaref=weibo.com&retcode=6102`;
     let options = {
       url: uri,
@@ -243,7 +256,6 @@ const crawl_weiboer_byid = async (id) => {
     // console.log(body);
     let $ = cheerio.load(body);
     let scripts = $('script');
-    console.log(scripts.length);
     scripts = scripts.map((i, v) => {
       let html = $(v).html();
       let match = html.match(reg_fm);
@@ -258,7 +270,6 @@ const crawl_weiboer_byid = async (id) => {
       }
     })
     scripts.map((i, v) => {
-      console.log(i);
       // console.log(v);
       let key = v['domid'];
       switch (true) {
@@ -266,86 +277,89 @@ const crawl_weiboer_byid = async (id) => {
           console.log('...页头信息...');
           let userhead = parse_userhead(v);
           console.log(userhead);
+          user = _.assign(user, userhead);
           break;
         case /Pl_Core_UserInfo__/.test(key):
           console.log('...用户信息...');
           let userinfo = parse_userinfo(v);
           console.log(userinfo);
+          user = _.assign(user, userinfo);
           break;
         case /Pl_Core_T8CustomTriColumn__/.test(key):
           console.log('...用户关系...');
           let userrelationship = parse_userrelationship(v);
           console.log(userrelationship);
+          user = _.assign(user, userrelationship);
           break;
         case /Pl_Official_MyProfileFeed__/.test(key):
-          console.log('...微博内容...');
+          // console.log('...微博内容...');
           break;
 
         case /pl_common_top/.test(key):
-          console.log('...顶部导航...');
+          // console.log('...顶部导航...');
           break;
         case /pl_common_footer/.test(key):
-          console.log('...页脚信息...');
+          // console.log('...页脚信息...');
           break;
         case /plc_frame/.test(key):
-          console.log('...页面框架...');
+          // console.log('...页面框架...');
           break;
         case /plc_main/.test(key):
-          console.log('...内容结构...');
+          // console.log('...内容结构...');
           break;
         case /Pl_Official_Nav__/.test(key):
-          console.log('...二级导航...');
+          // console.log('...二级导航...');
           break;
         case /Pl_Core_PicText__/.test(key):
-          console.log('...二级导航作品...');
+          // console.log('...二级导航作品...');
           break;
         case /Pl_Core_CustTab__/.test(key):
-          console.log('...二级导航服务...');
+          // console.log('...二级导航服务...');
           break;
         case /Pl_Official_LikeMerge__/.test(key):
-          console.log('...点赞微博...');
+          // console.log('...点赞微博...');
           break;
         case /Pl_Core_UserGrid__/.test(key):
-          console.log('...微关系...');
+          // console.log('...微关系...');
           break;
         case /Pl_Core_FansGroups__/.test(key):
-          console.log('...粉丝群...');
+          // console.log('...粉丝群...');
           break;
         case /Pl_Core_RecommendFeed__/.test(key):
-          console.log('...相关推荐...');
+          // console.log('...相关推荐...');
           break;
         case /Pl_Third_Inline__/.test(key):
-          console.log('...相册...');
+          // console.log('...相册...');
           break;
         case /Pl_Official_TimeBase__/.test(key):
-          console.log('...时间轴...');
+          // console.log('...时间轴...');
           break;
         case /Pl_Core_Ut1UserList__/.test(key):
-          console.log('...粉丝也关注...');
+          // console.log('...粉丝也关注...');
           break;
         case /Pl_Core_Pt13PicText__/.test(key):
-          console.log('...文章...');
+          // console.log('...文章...');
           break;
         case /Pl_Core_Pt6Rank__/.test(key):
-          console.log('...乐迷榜...');
+          // console.log('...乐迷榜...');
           break;
         case /Pl_Core_P6Video__/.test(key):
-          console.log('...视频...');
+          // console.log('...视频...');
           break;
         case /Pl_Core_PicTextList__/.test(key):
-          console.log('...视频...');
+          // console.log('...视频...');
           break;
         case /Pl_Core_P7MultiPicPlay__/.test(key):
-          console.log('...图片墙...');
+          // console.log('...图片墙...');
           break;
         case /Pl_Core_PicTextMixed__/.test(key):
-          console.log('...橱窗...');
+          // console.log('...橱窗...');
           break;
 
         case /Pl_Core_Pt6Rank__/.test(key):
         case /Pl_Official_ProfileFeedNav__/.test(key):
-          console.log(v['domid']);
-          console.log('...不知道什么鬼...');
+          // console.log(v['domid']);
+          // console.log('...不知道什么鬼...');
           break;
 
         default:
@@ -356,7 +370,7 @@ const crawl_weiboer_byid = async (id) => {
           break;
       }
     })
-    console.log(scripts.length);
+    return user;
   } catch (error) {
     console.error(error);
   }
@@ -366,7 +380,7 @@ const crawl_weiboer_byuri = async (uri) => {
   try {
     console.log(uri);
     let weibo_id = await crawl_weiboid_byuri(uri);
-    await crawl_weiboer_byid(weibo_id);
+    return await crawl_weiboer_byid(weibo_id);
   } catch (error) {
     console.error(error);
   }
@@ -385,7 +399,7 @@ const parse_articles = (body) => {
       let _divs = $(v).find('.WB_expand');
       if (_divs.length === 1) {
         let aa = _divs.children('.WB_info').children('a').first();
-        let nickname = aa.attr('nick-name');
+        let name = aa.attr('nick-name');
         let article_id = aa.attr('suda-uatrack').match(/transuser\_nick\:(\d*)/)[1];
         let user_id = aa.attr('usercard').match(/id\=(\d*)/)[1];
         let content = _divs.children('.WB_text').text().trim();
@@ -422,7 +436,7 @@ const parse_articles = (body) => {
         let comment = lis.eq(1).text().replace(/\D/g, '');
         let like = lis.last().text().replace(/\D/g, '');
         let article = {
-          nickname,
+          name,
           user_id,
           article_id,
           uri,
@@ -444,7 +458,7 @@ const parse_articles = (body) => {
       let user_id = $(v).parent().parent().attr('tbinfo').match(/ouid\=(\d*)/)[1];
       let article_id = $(v).parent().parent().attr('mid');
       let aa = $(v).children('.WB_info').children('a').first();
-      let nickname = aa.text().trim();
+      let name = aa.text().trim();
       let aas = $(v).find('.WB_from').children('a');
       let publish_time = new Date(aas.first().attr('title'));
       let uri = 'http://weibo.com' + aas.first().attr('href');
@@ -480,7 +494,7 @@ const parse_articles = (body) => {
       let comment = lis.eq(2).text().replace(/\D/g, '');
       let like = lis.last().text().replace(/\D/g, '');
       let article = {
-        nickname,
+        name,
         user_id,
         article_id,
         uri,
@@ -582,12 +596,13 @@ const crawl_articles_byuri = async (uri, page) => {
 
 // http://weibo.com/p/1005052285119444/follow?pids=Pl_Official_HisRelation__60&page=2&ajaxpagelet=1&ajaxpagelet_v6=1&__ref=%2Fp%2F1005052285119444%2Ffollow%3Ffrom%3Dpage_100505%26wvr%3D6%26mod%3Dheadfollow%23place&_t=FM_149726538665034
 // http://weibo.com/p/1005052285119444/follow?pids=Pl_Official_HisRelation__60&page=2&ajaxpagelet=1&ajaxpagelet_v6=1&__ref=/p/1005052285119444/follow?from=page_100505&wvr=6&mod=headfollow#place&_t=FM_149726538665034
+// http://weibo.com/p/1005052285119444/follow?pids=Pl_Official_HisRelation__60&page=2&ajaxpagelet=1&ajaxpagelet_v6=1&__ref=%2Fp%2F1005052285119444%2Ffollow%3Ffrom%3Dpage_100505%26wvr%3D6%26mod%3Dheadfollow%23place&_t=FM_149733937492335
 /**
  *  只能看前 5 页
  */
-const crawl_follows_byid = async (id, page) => {
+const crawl_follows_byid = async (id: string, page: number) => {
   try {
-    if (page >= 5) {
+    if (page > 5) {
       return {
         status: 0,
         follows: []
@@ -604,7 +619,7 @@ const crawl_follows_byid = async (id, page) => {
       headers: {
         "Host": 'weibo.com',
         "User-Agent": 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.81 Safari/537.36',
-        "Cookie": 'SINAGLOBAL=2814765473589.067.1484875273060; UM_distinctid=15bad72a54e0-00d24291aaf45a-143e655c-1aeaa0-15bad72a54fbcd; _s_tentry=baike.baidu.com; Apache=7379909336866.972.1494990148978; ULV=1494990149138:24:4:1:7379909336866.972.1494990148978:1494582703733; YF-Ugrow-G0=ad83bc19c1269e709f753b172bddb094; YF-V5-G0=5f9bd778c31f9e6f413e97a1d464047a; YF-Page-G0=091b90e49b7b3ab2860004fba404a078; SSOLoginState=1495518028; login_sid_t=b369960338a09b7d9555a79cddb2a7b2; WBtopGlobal_register_version=4641949e9f3439df; wvr=6; UOR=,,login.sina.com.cn; SCF=AtsqdIRs1koTLva1VnsJpX-bIJ1gGWgh3aR67Hj41UVxa-1z07wlpmxpRHvT9uhccXlpq0U7GFda-uMiIIW3wgk.; SUB=_2A250Ol_GDeRhGeBO61IQ9yvEyT2IHXVXTjYOrDV8PUNbmtBeLRL4kW8D0BRgV_59PqS1gXFmtSki2atbZA..; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WWauxJAp_Sb5HC3ovdO-gxG5JpX5KMhUgL.Foq7eh5pS0-Reo22dJLoI7DB-XHkMcvadJ94; SUHB=0rrL07k8Jb8gSq; ALF=1528783636; WBStorage=5ea47215d42b077f|undefined'
+        "Cookie": 'SINAGLOBAL=2814765473589.067.1484875273060; UM_distinctid=15bad72a54e0-00d24291aaf45a-143e655c-1aeaa0-15bad72a54fbcd; _s_tentry=baike.baidu.com; Apache=7379909336866.972.1494990148978; ULV=1494990149138:24:4:1:7379909336866.972.1494990148978:1494582703733; YF-Ugrow-G0=ad83bc19c1269e709f753b172bddb094; YF-V5-G0=5f9bd778c31f9e6f413e97a1d464047a; YF-Page-G0=091b90e49b7b3ab2860004fba404a078; SSOLoginState=1495518028; login_sid_t=b369960338a09b7d9555a79cddb2a7b2; WBtopGlobal_register_version=4641949e9f3439df; UOR=,,login.sina.com.cn; SCF=AtsqdIRs1koTLva1VnsJpX-bIJ1gGWgh3aR67Hj41UVxGG2t4v5TfrrSroWVOB-L7UlrUGOhS1e-W1xOUZ0DJbk.; SUB=_2A250O-T6DeRhGeBO61IQ9yvEyT2IHXVXMVEyrDV8PUNbmtBeLRSskW-ZIquu62GwQdKAvWgMbiAbl-SfVg..; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WWauxJAp_Sb5HC3ovdO-gxG5JpX5KMhUgL.Foq7eh5pS0-Reo22dJLoI7DB-XHkMcvadJ94; SUHB=0G0e3uCLr3cozT; ALF=1528875048'
       }
     }
     let body = await rp(options);
@@ -619,10 +634,13 @@ const crawl_follows_byid = async (id, page) => {
     if (match) {
       script = JSON.parse(match[1]);
     }
-    let follows = parse_userfollow(script);
+    let follows = parse_userfollow(script).toArray();
     let $ = cheerio.load(script['html']);
     if ($('a.next').length === 1 && $('.next').text() === '下一页') {
       status = 1;
+    }
+    if (page === 5) {
+      status = 0;
     }
     // console.log(status);
     // console.log(follows);
@@ -636,7 +654,7 @@ const crawl_follows_byid = async (id, page) => {
   }
 }
 
-const crawl_fans_byid = async (id, page) => {
+const crawl_fans_byid = async (id: string, page: number) => {
   try {
     if (page >= 5) {
       return {
@@ -655,7 +673,7 @@ const crawl_fans_byid = async (id, page) => {
       headers: {
         "Host": 'weibo.com',
         "User-Agent": 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.81 Safari/537.36',
-        "Cookie": 'SINAGLOBAL=2814765473589.067.1484875273060; UM_distinctid=15bad72a54e0-00d24291aaf45a-143e655c-1aeaa0-15bad72a54fbcd; _s_tentry=baike.baidu.com; Apache=7379909336866.972.1494990148978; ULV=1494990149138:24:4:1:7379909336866.972.1494990148978:1494582703733; YF-Ugrow-G0=ad83bc19c1269e709f753b172bddb094; YF-V5-G0=5f9bd778c31f9e6f413e97a1d464047a; YF-Page-G0=091b90e49b7b3ab2860004fba404a078; SSOLoginState=1495518028; login_sid_t=b369960338a09b7d9555a79cddb2a7b2; WBtopGlobal_register_version=4641949e9f3439df; wvr=6; UOR=,,login.sina.com.cn; SCF=AtsqdIRs1koTLva1VnsJpX-bIJ1gGWgh3aR67Hj41UVxa-1z07wlpmxpRHvT9uhccXlpq0U7GFda-uMiIIW3wgk.; SUB=_2A250Ol_GDeRhGeBO61IQ9yvEyT2IHXVXTjYOrDV8PUNbmtBeLRL4kW8D0BRgV_59PqS1gXFmtSki2atbZA..; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WWauxJAp_Sb5HC3ovdO-gxG5JpX5KMhUgL.Foq7eh5pS0-Reo22dJLoI7DB-XHkMcvadJ94; SUHB=0rrL07k8Jb8gSq; ALF=1528783636; WBStorage=5ea47215d42b077f|undefined'
+        "Cookie": 'SINAGLOBAL=2814765473589.067.1484875273060; UM_distinctid=15bad72a54e0-00d24291aaf45a-143e655c-1aeaa0-15bad72a54fbcd; _s_tentry=baike.baidu.com; Apache=7379909336866.972.1494990148978; ULV=1494990149138:24:4:1:7379909336866.972.1494990148978:1494582703733; YF-Ugrow-G0=ad83bc19c1269e709f753b172bddb094; YF-V5-G0=5f9bd778c31f9e6f413e97a1d464047a; YF-Page-G0=091b90e49b7b3ab2860004fba404a078; SSOLoginState=1495518028; login_sid_t=b369960338a09b7d9555a79cddb2a7b2; WBtopGlobal_register_version=4641949e9f3439df; UOR=,,login.sina.com.cn; SCF=AtsqdIRs1koTLva1VnsJpX-bIJ1gGWgh3aR67Hj41UVxGG2t4v5TfrrSroWVOB-L7UlrUGOhS1e-W1xOUZ0DJbk.; SUB=_2A250O-T6DeRhGeBO61IQ9yvEyT2IHXVXMVEyrDV8PUNbmtBeLRSskW-ZIquu62GwQdKAvWgMbiAbl-SfVg..; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WWauxJAp_Sb5HC3ovdO-gxG5JpX5KMhUgL.Foq7eh5pS0-Reo22dJLoI7DB-XHkMcvadJ94; SUHB=0G0e3uCLr3cozT; ALF=1528875048'
       }
     }
     let body = await rp(options);
@@ -670,7 +688,7 @@ const crawl_fans_byid = async (id, page) => {
     if (match) {
       script = JSON.parse(match[1]);
     }
-    let fans = parse_userfollow(script);
+    let fans = parse_userfollow(script).toArray();
     let $ = cheerio.load(script['html']);
     if ($('a.next').length === 1 && $('.next').text() === '下一页') {
       status = 1;
@@ -694,5 +712,15 @@ const crawl_fans_byid = async (id, page) => {
 // crawl_weiboer_byuri(process.argv[2]);
 // crawl_articles_byid(2285119444, 'dotacold', 12);
 // crawl_articles_byuri('http://weibo.com/tongdaodashu?refer_flag=0000015010_&from=feed&loc=nickname', 1);
-// crawl_follows_byid(2285119444, 1);
+// crawl_follows_byid('2285119444', 2);
 // crawl_fans_byid(2285119444, 1);
+
+export {
+  crawl_weiboid_byuri,
+  crawl_weiboer_byid,
+  crawl_weiboer_byuri,
+  crawl_articles_byid,
+  crawl_articles_byuri,
+  crawl_follows_byid,
+  crawl_fans_byid
+}
