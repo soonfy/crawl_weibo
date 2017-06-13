@@ -22,8 +22,8 @@
   "include": [
     // 编译源文件
     "./*.ts",
-    "./src/*.ts",
-    "./test/*.ts"
+    "./crawlers/*.ts",
+    "./models/*.ts"
   ],
   "exclude": [
     // 排除编译文件
