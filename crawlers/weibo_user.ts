@@ -102,7 +102,7 @@ const parse_userinfo = (script) => {
             bloglink = temp.replace(/博客地址：/, '').trim();
           } else {
             console.error('...未处理的个性域名...');
-            process.exit();
+            // process.exit();
           }
         } else if ($(v).find('.W_icon_level').length === 1) {
           // console.log('...等级...');
@@ -149,7 +149,7 @@ const parse_userinfo = (script) => {
             default:
               console.error('未处理的链接标签');
               console.error(temp);
-              process.exit();
+              // process.exit();
               break;
           }
         } else {
@@ -157,7 +157,7 @@ const parse_userinfo = (script) => {
           console.error(script['html']);
           console.error($('li').html());
           console.error($(v).children('span').last().text().trim());
-          process.exit();
+          // process.exit();
         }
       })
       let resp = obj_filter({ level, signature, address, birth, info, personalname, personallink, bloglink, baidu, education, industry, sexlove, relationship, tags, otherlinks });
@@ -207,7 +207,7 @@ const parse_userfollow = (script) => {
       } else if (match.toLowerCase() === 'f') {
         sex = 2;
       } else {
-        process.exit();
+        // process.exit();
       }
       let spans = $(v).find('.info_connect span');
       spans.map((ii, vv) => {
@@ -366,7 +366,7 @@ const crawl_weiboer_byid = async (id) => {
           console.error('...未做处理的script标签...');
           console.error(v['domid']);
           console.error(v);
-          process.exit();
+          // process.exit();
           break;
       }
     })
