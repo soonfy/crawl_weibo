@@ -15,8 +15,8 @@ const crawl_userinfo = async (id) => {
     let user = await weiboUserCrawler.crawl_weiboer_byid(id);
     // console.log('crawl user ->\r\n', user);
     let _user = await UserModel.updateUser(user);
-    let data = await UserModel.updateUserAndFan(user);
-    console.log('store user and fan --> \r\n', data);
+    // let data = await UserModel.updateUserAndFan(user);
+    // console.log('store user and fan --> \r\n', data);
   } catch (error) {
     console.error(error);
   }
