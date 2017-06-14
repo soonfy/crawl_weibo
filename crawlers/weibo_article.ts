@@ -3,11 +3,98 @@ import * as cheerio from 'cheerio';
 import * as _ from 'lodash';
 
 const reg_location = /location\.replace\(\"(.+)\"\)\;/;
+const reg_user_id = /id=(\d+)/;
 
-const crawl_repost = async () => {
+const parse_repost = (html) => {
   try {
-    let id = 4118187576118432;
-    let uri = `http://weibo.com/aj/v6/mblog/info/big?ajwvr=6&id=${id}&__rnd=${Date.now()}`;
+    let hots = [], reposts = [];
+    let $ = cheerio.load(html);
+    if ($('.between_line').length === 1) {
+      let div_hots = $('.between_line').prevAll();
+      hots = div_hots.map((i, v) => {
+        let article_id = $(v).attr('mid');
+        let user_id, user_name, address, topics = [], atnames = [], repost, comment, repost_time;
+        let aa = $(v).find('.WB_text').children('a').first();
+        user_name = aa.text().trim();
+        let match = aa.attr('usercard').match(reg_user_id);
+        if (match) {
+          user_id = match[1];
+        }
+        let content = $(v).find('.WB_text').children('span').text().trim();
+        let aas = $(v).find('.WB_text').children('span').children('a');
+        aas.map((ii, vv) => {
+          let usercard = $(vv).attr('usercard');
+          let extra = $(vv).attr('extra-data');
+          let text = $(vv).text().trim();
+          if ($(vv).find('.ficon_cd_place').length === 1) {
+            address = text.slice(1);
+          } else if (/type=topic/.test(extra) || /type=topic/.test(usercard)) {
+            topics.push(text);
+          } else if (/type=atname/.test(extra) || /type=atname/.test(usercard)) {
+            atnames.push(text);
+          } else if ($(vv).find('.ficon_cd_img').length === 1) {
+            console.log('图片内容');
+          } else {
+            // console.log($(vv).html());
+            // console.log($(vv).text());
+          }
+        })
+        aas.remove();
+        let summary = $(v).find('.WB_text').children('span').text().trim();
+        repost = $(v).find('.WB_handle').find('.S_txt1').eq(1).text().replace(/\D/g, '') - 0;
+        comment = $(v).find('.WB_handle').find('.S_txt1').last().text().replace(/\D/g, '') - 0;
+        repost_time = new Date($(v).find('.WB_from').children('a').attr('date') - 0);
+        return { article_id, user_id, user_name, content, summary, address, topics, atnames, repost, comment, repost_time }
+      })
+      hots = hots.toArray();
+      div_hots.remove();
+    }
+    let divs = $('.list_li');
+    reposts = divs.map((i, v) => {
+      let article_id = $(v).attr('mid');
+      let user_id, user_name, address, topics = [], atnames = [], repost, comment, repost_time;
+      let aa = $(v).find('.WB_text').children('a').first();
+      user_name = aa.text().trim();
+      let match = aa.attr('usercard').match(reg_user_id);
+      if (match) {
+        user_id = match[1];
+      }
+      let content = $(v).find('.WB_text').children('span').text().trim();
+      let aas = $(v).find('.WB_text').children('span').children('a');
+      aas.map((ii, vv) => {
+        let usercard = $(vv).attr('usercard');
+        let extra = $(vv).attr('extra-data');
+        let text = $(vv).text().trim();
+        if ($(vv).find('.ficon_cd_place').length === 1) {
+          address = text.slice(1);
+        } else if (/type=topic/.test(extra) || /type=topic/.test(usercard)) {
+          topics.push(text);
+        } else if (/type=atname/.test(extra) || /type=atname/.test(usercard)) {
+          atnames.push(text);
+        } else if ($(vv).find('.ficon_cd_img').length === 1) {
+          console.log('图片内容');
+        } else {
+          // console.log($(vv).html());
+          // console.log($(vv).text());
+        }
+      })
+      aas.remove();
+      let summary = $(v).find('.WB_text').children('span').text().trim();
+      repost = $(v).find('.WB_handle').find('.S_txt1').eq(1).text().replace(/\D/g, '') - 0;
+      comment = $(v).find('.WB_handle').find('.S_txt1').last().text().replace(/\D/g, '') - 0;
+      repost_time = new Date($(v).find('.WB_from').children('a').attr('date') - 0);
+      return { article_id, user_id, user_name, content, summary, address, topics, atnames, repost, comment, repost_time }
+    })
+    reposts = reposts.toArray();
+    return { hots, reposts }
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+const crawl_repost = async (id, page) => {
+  try {
+    let uri = `http://weibo.com/aj/v6/mblog/info/big?ajwvr=6&id=${id}&page=${page}&__rnd=${Date.now()}`;
     let options = {
       url: uri,
       method: 'GET',
@@ -25,15 +112,25 @@ const crawl_repost = async () => {
       options.url = match[1];
       body = await rp(options);
     }
-    console.log(body);
+    // console.log(body);
     let data = JSON.parse(body);
     let count = data.data.count;
-    let page = data.data.page.pagenum,
-      pages = data.data.page.totalpage;
-    let $ = cheerio.load(data.data.html);
+    let pagenum = data.data.page.pagenum,
+      totalpage = data.data.page.totalpage,
+      html = data.data.html;
+    let articles = parse_repost(html);
+    // console.log(reposts);
+    return {
+      pagenum,
+      totalpage,
+      count,
+      articles
+    }
   } catch (error) {
     console.error(error);
   }
 }
 
-crawl_repost();
+// crawl_repost(4118276278062890, 1);
+
+export { crawl_repost }
