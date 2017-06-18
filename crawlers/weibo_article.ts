@@ -5,6 +5,12 @@ import * as _ from 'lodash';
 const reg_location = /location\.replace\(\"(.+)\"\)\;/;
 const reg_user_id = /id=(\d+)/;
 
+const sleep = async (ss) => {
+  return new Promise((resolve, reject) => {
+    setTimeout(resolve, ss * 1000);
+  })
+}
+
 const parse_repost = (html) => {
   try {
     let hots = [], reposts = [];
@@ -127,6 +133,12 @@ const crawl_repost = async (id, page) => {
       articles
     }
   } catch (error) {
+    if (error.statusCode === 414) {
+      console.error(error.message);
+      console.error(`414 error. sleep 5m.`);
+      await sleep(60 * 5);
+      return await crawl_repost(id, page);
+    }
     console.error(error);
   }
 }

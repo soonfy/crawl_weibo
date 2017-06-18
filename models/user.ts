@@ -21,6 +21,14 @@ const UserSchema = new Schema({
   sex: {
     type: Number, // 1 - m, 2 - f
   },
+  // 认证
+  verify: {
+    type: Number, // 0 - 未认证, 1 - 黄V, 2 - 个人, 3 - 公司
+  },
+  // 会员等级
+  vip_level: {
+    type: Number, // 0 - 不是会员
+  },
   // 关注数
   follows: {
     type: Number,
@@ -47,6 +55,10 @@ const UserSchema = new Schema({
   },
   // 简介
   info: {
+    type: String,
+  },
+  // 邮箱
+  email: {
     type: String,
   },
   // 个性域名

@@ -62,7 +62,23 @@ const parse_userhead = (script) => {
       } else {
         console.error('未知性别');
       }
-      let resp = obj_filter({ name, signature, sex });
+      let verify = 0;
+      if ($('.icon_pf_approve_gold').length === 1) {
+        verify = 1;
+      } else if ($('.icon_approve').length === 1) {
+        verify = 2;
+      } else if ($('.icon_approve_co').length === 1) {
+        verify = 2;
+      } else {
+        console.log('...未认证...');
+      }
+      let vip_level = 0;
+      let temp = $('.pf_username').children('a').children('em').attr('class') || $('.pf_username').children('a').children('img').attr('src') || '';
+      let match = temp.match(/icon_member(\d+)/) || temp.match(/cake\_level\_(\d+)\.png/);
+      if (match) {
+        vip_level = match[1] - 0;
+      }
+      let resp = obj_filter({ name, signature, sex, verify, vip_level });
       return resp;
     }
   } catch (error) {
@@ -78,7 +94,7 @@ const parse_userinfo = (script) => {
       level = level.replace(/\D/g, '');
       let signature = $('.info').eq(0).text().trim();
       let lis = $('li');
-      let address, birth, info, personalname, personallink, bloglink, baidu, education, industry, sexlove, relationship, tags, otherlinks;
+      let address, birth, info, email, personalname, personallink, bloglink, baidu, education, industry, sexlove, relationship, tags, otherlinks;
       lis.map((i, v) => {
         if ($(v).find('.ficon_cd_place').length === 1) {
           // console.log('...地址...');
@@ -126,6 +142,9 @@ const parse_userinfo = (script) => {
         } else if ($(v).find('.ficon_relationship').length === 1) {
           // console.log('...感情状况...');
           relationship = $(v).children('span').last().text().trim();
+        } else if ($(v).find('.ficon_email').length === 1) {
+          // console.log('...邮箱...');
+          email = $(v).children('span').last().text().trim();
         } else if ($(v).find('.ficon_cd_coupon').length === 1) {
           // console.log('...标签/友情链接...');
           let aas = $(v).find('a');
@@ -160,7 +179,7 @@ const parse_userinfo = (script) => {
           // process.exit();
         }
       })
-      let resp = obj_filter({ level, signature, address, birth, info, personalname, personallink, bloglink, baidu, education, industry, sexlove, relationship, tags, otherlinks });
+      let resp = obj_filter({ level, signature, address, birth, info, email, personalname, personallink, bloglink, baidu, education, industry, sexlove, relationship, tags, otherlinks });
       return resp;
     }
   } catch (error) {
@@ -224,7 +243,7 @@ const parse_userfollow = (script) => {
       let address = $(v).find('.info_add span').text().trim();
       let signature = $(v).find('.info_intro span').text().trim();
       let from = $(v).find('.info_from a').text().trim();
-      let resp = obj_filter({uid, name, sex, follows, fans, microblogs, address, signature, from})
+      let resp = obj_filter({ uid, name, sex, follows, fans, microblogs, address, signature, from })
       return resp;
     })
     return users;
@@ -241,6 +260,7 @@ const crawl_weiboer_byid = async (id) => {
       _id: id
     };
     let uri = `http://weibo.com/u/${id}?is_all=1&sudaref=weibo.com&retcode=6102`;
+    console.log(uri);
     let options = {
       url: uri,
       method: 'GET',
@@ -623,12 +643,13 @@ const crawl_follows_byid = async (id: string, page: number) => {
       }
     }
     let body = await rp(options);
+    console.log(body);
     let match = body.match(reg_location);
     if (match) {
       options.url = match[1];
       body = await rp(options);
     }
-    // console.log(body);
+    console.log(body);
     match = body.match(reg_fm);
     let script;
     if (match) {
@@ -705,15 +726,117 @@ const crawl_fans_byid = async (id: string, page: number) => {
   }
 }
 
+const parse_user = (script) => {
+  try {
+    if (script['domid'].match(/Pl_Core_F4RightUserList__/)) {
+      let $ = cheerio.load(script['html']);
+      let lis = $('li.follow_item');
+      let users = lis.map((i, v) => {
+        let usercard = $(v).find('.S_txt1').first().attr('usercard');
+        let id = usercard.match(/id\=(\d+)/)[1];
+        let username = $(v).find('.S_txt1').first().attr('title');
+        return {
+          id,
+          username
+        }
+      })
+      let status = 1;
+      if ($('.next').hasClass('page_dis')) {
+        status = 0;
+      }
+      return {
+        status,
+        users: users.toArray()
+      }
+    }
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+const crawl_weiboers_bytag = async (tag, page) => {
+  try {
+    let users;
+    if (typeof tag === 'object') {
+      tag = tag.href;
+    }
+    let uri = `${tag}?page=${page}#Pl_Core_F4RightUserList__4`;
+    console.log(uri);
+    let options = {
+      url: uri,
+      method: 'GET',
+      // gzip: true,
+      timeout: 1000 * 60 * 2,
+      headers: {
+        "Host": 'd.weibo.com',
+        "User-Agent": 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.81 Safari/537.36',
+        "Cookie": 'SINAGLOBAL=2286942856549.21.1488107938571; UM_distinctid=15baf359da7c01-03d9466680a9eb-143d655c-1fa400-15baf359da8b32; _s_tentry=sass.weibo.com; Apache=6564239174790.121.1497437656999; ULV=1497437657072:18:7:4:6564239174790.121.1497437656999:1497357168711; login_sid_t=ea711f2add5a09c677082b8d7ef0dda8; TC-Page-G0=0cd4658437f38175b9211f1336161d7d; UOR=,,login.sina.com.cn; SCF=Ag3xO7UkzFJb1Zndsb1vN3dkWIVVhk8hN3aSCu7oUQDkztdmk3XcEWpPcDjKdCIell1bFZlGL6yERxLm4P7JhTQ.; SUB=_2A250QK35DeRhGeBO61IQ9yvEyT2IHXVXN5gxrDV8PUNbmtAKLW_-kW-ZG_-joiuDIaGQLozdxKVx-1cjBw..; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WWauxJAp_Sb5HC3ovdO-gxG5JpX5K2hUgL.Foq7eh5pS0-Reo22dJLoI7DB-XHkMcvadJ94; SUHB=0S7y95vZV3wB12; ALF=1529221417; SSOLoginState=1497685417; un=18610618644; wvr=6'
+      }
+    }
+    let body = await rp(options);
+    let match = body.match(reg_location);
+    if (match) {
+      options.url = match[1];
+      body = await rp(options);
+    }
+    // console.log(body);
+    let $ = cheerio.load(body);
+    let scripts = $('script');
+    scripts = scripts.map((i, v) => {
+      let html = $(v).html();
+      let match = html.match(reg_fm);
+      if (match) {
+        let data = JSON.parse(match[1]);
+        return data;
+      }
+    })
+    scripts = scripts.filter((i, v) => {
+      if ('html' in v) {
+        return true;
+      }
+    })
+    scripts.map((i, v) => {
+      let key = v['domid'];
+      switch (true) {
+        case /pl_common_top/.test(key):
+        case /pl_common_oplogo/.test(key):
+        case /pl_common_footer/.test(key):
+        case /pl_common_topicbase/.test(key):
+        case /plc_discover_nav/.test(key):
+        case /plc_main/.test(key):
+        case /plc_discover/.test(key):
+        case /Pl_Discover_LeftNav__/.test(key):
+        case /Pl_Core_T1SingleColumn__/.test(key):
+        case /Pl_Discover_TextList__/.test(key):
+        case /Pl_Core_Ut1UserList__/.test(key):
+        case /Pl_Discover_TextNewList__/.test(key):
+          break;
+
+        case /Pl_Core_F4RightUserList__/.test(key):
+          users = parse_user(v);
+          break;
+
+        default:
+          console.log(key);
+          break;
+      }
+    })
+    return users;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
 // let uri = 'http://weibo.com/u/6000175821/home#_0';
 // crawl_weiboid_byuri(uri);
-// crawl_weiboer_byid(1239246050);
+// crawl_weiboer_byid(1646218964);
 // crawl_weiboer_byuri('http://weibo.com/kujian?refer_flag=0000015010_&from=feed&loc=nickname&is_all=1');
 // crawl_weiboer_byuri(process.argv[2]);
 // crawl_articles_byid(2285119444, 'dotacold', 12);
 // crawl_articles_byuri('http://weibo.com/tongdaodashu?refer_flag=0000015010_&from=feed&loc=nickname', 1);
 // crawl_follows_byid('2285119444', 2);
 // crawl_fans_byid(2285119444, 1);
+// crawl_weiboers_bytag('http://d.weibo.com/1087030002_2975_1003_4', 1);
 
 export {
   crawl_weiboid_byuri,
@@ -722,5 +845,6 @@ export {
   crawl_articles_byid,
   crawl_articles_byuri,
   crawl_follows_byid,
-  crawl_fans_byid
+  crawl_fans_byid,
+  crawl_weiboers_bytag
 }

@@ -1,6 +1,7 @@
 import * as _ from 'lodash';
 
 import * as weiboUserCrawler from './crawlers/weibo_user';
+import * as weiboTagCrawler from './crawlers/weibo_tag';
 
 import { UserModel } from './models/user';
 import { FollowModel } from './models/user_follows';
@@ -50,7 +51,7 @@ const crawl_userfollows = async (id) => {
   }
 }
 
-// crawl_userfollows('2285119444');
+// crawl_userfollows('1400854834');
 
 const crawl_userfans = async (id) => {
   try {
@@ -112,4 +113,28 @@ const crawl_users = async (id) => {
   }
 }
 
-crawl_users('2285119444')
+// crawl_users('1400854834');
+
+const crawl_users_bytag = async () => {
+  try {
+    let tags = await weiboTagCrawler.crawl_tag();
+    // console.log(tags);
+    for (let tag of tags) {
+      let page = 1;
+      let data = await weiboUserCrawler.crawl_weiboers_bytag(tag, page);
+      while (data.status === 1) {
+        console.log('page', page);
+        for (let user of data.users) {
+          await crawl_userinfo(user.id);
+        }
+        page++;
+        data = await weiboUserCrawler.crawl_weiboers_bytag(tag, page);
+      }
+    }
+    console.log('all tags over.');
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+crawl_users_bytag();
