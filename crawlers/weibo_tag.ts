@@ -88,7 +88,7 @@ const crawl_tag = async () => {
           break;
       }
     })
-    console.log(tags);
+    // console.log(tags);
     return tags;
   } catch (error) {
     console.error(error);

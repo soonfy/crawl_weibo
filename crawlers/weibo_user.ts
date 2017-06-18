@@ -6,6 +6,12 @@ const reg_uid = /\$CONFIG\[\'oid\'\]\=\'([\w\d]+)\'/;
 const reg_fm = /FM.view\((.+)\)/;
 const reg_location = /location\.replace\(\"(.+)\"\)\;/;
 
+/**
+ *
+ *  @description 过滤 值 为 undefined/null的属性
+ *  @param obj
+ *
+ */
 const obj_filter = (obj) => {
   let res = {};
   for (let attr in obj) {
@@ -17,6 +23,12 @@ const obj_filter = (obj) => {
   return res;
 }
 
+/**
+ *
+ *  @description 通过 微博链接 采集 微博用户 的id
+ *  @param uri
+ *
+ */
 const crawl_weiboid_byuri = async (uri) => {
   try {
     let weibo_id = 'error';
@@ -48,6 +60,12 @@ const crawl_weiboid_byuri = async (uri) => {
   }
 }
 
+/**
+ *
+ *  @description 解析 微博用户 的头部信息
+ *  @param script
+ *
+ */
 const parse_userhead = (script) => {
   try {
     if (script['domid'].match(/Pl_Official_Headerv6__/)) {
@@ -86,6 +104,12 @@ const parse_userhead = (script) => {
   }
 }
 
+/**
+ *
+ *  @description 解析 微博用户 的基本信息
+ *  @param script
+ *
+ */
 const parse_userinfo = (script) => {
   try {
     if (script['domid'].match(/Pl\_Core\_UserInfo\_\_/)) {
@@ -187,6 +211,12 @@ const parse_userinfo = (script) => {
   }
 }
 
+/**
+ *
+ *  @description 解析 微博用户 的关注、粉丝、微博数
+ *  @param script
+ *
+ */
 const parse_userrelationship = (script) => {
   try {
     if (script['domid'].match(/Pl_Core_T8CustomTriColumn__/)) {
@@ -211,48 +241,12 @@ const parse_userrelationship = (script) => {
   }
 }
 
-const parse_userfollow = (script) => {
-  try {
-    let $ = cheerio.load(script['html']);
-    let lis = $('li.follow_item');
-    let users = lis.map((i, v) => {
-      let data = $(v).attr('action-data').trim();
-      let uid = data.match(/uid\=(\d+)\&/)[1];
-      let name = data.match(/fnick\=([^&]+)\&/)[1];
-      let match = data.match(/\&sex\=(\w+)/)[1];
-      let sex, follows, fans, microblogs;
-      if (match.toLowerCase() === 'm') {
-        sex = 1;
-      } else if (match.toLowerCase() === 'f') {
-        sex = 2;
-      } else {
-        // process.exit();
-      }
-      let spans = $(v).find('.info_connect span');
-      spans.map((ii, vv) => {
-        let text = $(vv).text(),
-          count = text.replace(/\D/g, '').trim();
-        if (text.includes('关注')) {
-          follows = count;
-        } else if (text.includes('粉丝')) {
-          fans = count;
-        } else if (text.includes('微博')) {
-          microblogs = count;
-        }
-      })
-      let address = $(v).find('.info_add span').text().trim();
-      let signature = $(v).find('.info_intro span').text().trim();
-      let from = $(v).find('.info_from a').text().trim();
-      let resp = obj_filter({ uid, name, sex, follows, fans, microblogs, address, signature, from })
-      return resp;
-    })
-    return users;
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-
+/**
+ *
+ *  @description 通过 微博id 采集 微博用户 的基本信息
+ *  @param id
+ *
+ */
 const crawl_weiboer_byid = async (id) => {
   try {
     console.log(id);
@@ -396,6 +390,12 @@ const crawl_weiboer_byid = async (id) => {
   }
 }
 
+/**
+ *
+ *  @description 通过 微博链接 采集 微博用户 的基本信息
+ *  @param uri
+ *
+ */
 const crawl_weiboer_byuri = async (uri) => {
   try {
     console.log(uri);
@@ -406,9 +406,12 @@ const crawl_weiboer_byuri = async (uri) => {
   }
 }
 
-// http://weibo.com/p/aj/v6/mblog/mbloglist?ajwvr=6&domain=100505&from=myfollow_all&is_all=1&pagebar=0&pl_name=Pl_Official_MyProfileFeed__22&id=1005052285119444&script_uri=/dotacold&feed_type=0&page=1&pre_page=1&domain_op=100505&__rnd=1497011591262
-// http://weibo.com/p/aj/v6/mblog/mbloglist?ajwvr=6&domain=100505&profile_ftype=1&script_uri=/u/#{weiboer_id}&is_all=1&pre_page=#{pre_page}&page=#{page}&id=#{long_id}&pagebar=#{pagebar}&feed_type=0&__rnd=#{(new Date()).getTime()}&pl_name=Pl_Official_MyProfileFeed__24&domain_op=100505
-
+/**
+ *
+ *  @description 解析 微博用户 的文章列表
+ *  @param body
+ *
+ */
 const parse_articles = (body) => {
   try {
     let articles = [];
@@ -539,6 +542,12 @@ const parse_articles = (body) => {
   }
 }
 
+/**
+ *
+ *  @description 通过 微博id 采集 微博用户 的文章列表
+ *  @param id, page
+ *
+ */
 const crawl_articles_byid = async (id, username, page) => {
   try {
     console.log(id);
@@ -604,6 +613,12 @@ const crawl_articles_byid = async (id, username, page) => {
   }
 }
 
+/**
+ *
+ *  @description 通过 微博链接 采集 微博用户 的文章列表
+ *  @param uri, page
+ *
+ */
 const crawl_articles_byuri = async (uri, page) => {
   try {
     let id = await crawl_weiboid_byuri(uri);
@@ -614,11 +629,59 @@ const crawl_articles_byuri = async (uri, page) => {
   }
 }
 
-// http://weibo.com/p/1005052285119444/follow?pids=Pl_Official_HisRelation__60&page=2&ajaxpagelet=1&ajaxpagelet_v6=1&__ref=%2Fp%2F1005052285119444%2Ffollow%3Ffrom%3Dpage_100505%26wvr%3D6%26mod%3Dheadfollow%23place&_t=FM_149726538665034
-// http://weibo.com/p/1005052285119444/follow?pids=Pl_Official_HisRelation__60&page=2&ajaxpagelet=1&ajaxpagelet_v6=1&__ref=/p/1005052285119444/follow?from=page_100505&wvr=6&mod=headfollow#place&_t=FM_149726538665034
-// http://weibo.com/p/1005052285119444/follow?pids=Pl_Official_HisRelation__60&page=2&ajaxpagelet=1&ajaxpagelet_v6=1&__ref=%2Fp%2F1005052285119444%2Ffollow%3Ffrom%3Dpage_100505%26wvr%3D6%26mod%3Dheadfollow%23place&_t=FM_149733937492335
 /**
+ *
+ *  @description 解析 微博用户 的关注/粉丝用户
+ *  @param script
+ *
+ */
+const parse_userfollow = (script) => {
+  try {
+    let $ = cheerio.load(script['html']);
+    let lis = $('li.follow_item');
+    let users = lis.map((i, v) => {
+      let data = $(v).attr('action-data').trim();
+      let uid = data.match(/uid\=(\d+)\&/)[1];
+      let name = data.match(/fnick\=([^&]+)\&/)[1];
+      let match = data.match(/\&sex\=(\w+)/)[1];
+      let sex, follows, fans, microblogs;
+      if (match.toLowerCase() === 'm') {
+        sex = 1;
+      } else if (match.toLowerCase() === 'f') {
+        sex = 2;
+      } else {
+        // process.exit();
+      }
+      let spans = $(v).find('.info_connect span');
+      spans.map((ii, vv) => {
+        let text = $(vv).text(),
+          count = text.replace(/\D/g, '').trim();
+        if (text.includes('关注')) {
+          follows = count;
+        } else if (text.includes('粉丝')) {
+          fans = count;
+        } else if (text.includes('微博')) {
+          microblogs = count;
+        }
+      })
+      let address = $(v).find('.info_add span').text().trim();
+      let signature = $(v).find('.info_intro span').text().trim();
+      let from = $(v).find('.info_from a').text().trim();
+      let resp = obj_filter({ uid, name, sex, follows, fans, microblogs, address, signature, from })
+      return resp;
+    })
+    return users;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+/**
+ *
+ *  @description 采集 微博用户 的关注用户
+ *  @param id, page
  *  只能看前 5 页
+ *
  */
 const crawl_follows_byid = async (id: string, page: number) => {
   try {
@@ -675,6 +738,13 @@ const crawl_follows_byid = async (id: string, page: number) => {
   }
 }
 
+/**
+ *
+ *  @description 采集 微博用户 的粉丝用户
+ *  @param id, page
+ *  只能看前 5 页
+ *
+ */
 const crawl_fans_byid = async (id: string, page: number) => {
   try {
     if (page >= 5) {
@@ -726,6 +796,12 @@ const crawl_fans_byid = async (id: string, page: number) => {
   }
 }
 
+/**
+ *
+ *  @description 解析 微博标签页 的用户
+ *  @param script
+ *
+ */
 const parse_user = (script) => {
   try {
     if (script['domid'].match(/Pl_Core_F4RightUserList__/)) {
@@ -754,6 +830,12 @@ const parse_user = (script) => {
   }
 }
 
+/**
+ *
+ *  @description 采集 微博标签页 的用户
+ *  @param tag, page
+ *
+ */
 const crawl_weiboers_bytag = async (tag, page) => {
   try {
     let users;
@@ -770,7 +852,8 @@ const crawl_weiboers_bytag = async (tag, page) => {
       headers: {
         "Host": 'd.weibo.com',
         "User-Agent": 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.81 Safari/537.36',
-        "Cookie": 'SINAGLOBAL=2286942856549.21.1488107938571; UM_distinctid=15baf359da7c01-03d9466680a9eb-143d655c-1fa400-15baf359da8b32; _s_tentry=sass.weibo.com; Apache=6564239174790.121.1497437656999; ULV=1497437657072:18:7:4:6564239174790.121.1497437656999:1497357168711; login_sid_t=ea711f2add5a09c677082b8d7ef0dda8; TC-Page-G0=0cd4658437f38175b9211f1336161d7d; UOR=,,login.sina.com.cn; SCF=Ag3xO7UkzFJb1Zndsb1vN3dkWIVVhk8hN3aSCu7oUQDkztdmk3XcEWpPcDjKdCIell1bFZlGL6yERxLm4P7JhTQ.; SUB=_2A250QK35DeRhGeBO61IQ9yvEyT2IHXVXN5gxrDV8PUNbmtAKLW_-kW-ZG_-joiuDIaGQLozdxKVx-1cjBw..; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WWauxJAp_Sb5HC3ovdO-gxG5JpX5K2hUgL.Foq7eh5pS0-Reo22dJLoI7DB-XHkMcvadJ94; SUHB=0S7y95vZV3wB12; ALF=1529221417; SSOLoginState=1497685417; un=18610618644; wvr=6'
+        // "Cookie": 'SINAGLOBAL=2286942856549.21.1488107938571; UM_distinctid=15baf359da7c01-03d9466680a9eb-143d655c-1fa400-15baf359da8b32; _s_tentry=sass.weibo.com; Apache=6564239174790.121.1497437656999; ULV=1497437657072:18:7:4:6564239174790.121.1497437656999:1497357168711; login_sid_t=ea711f2add5a09c677082b8d7ef0dda8; TC-Page-G0=0cd4658437f38175b9211f1336161d7d; UOR=,,login.sina.com.cn; SCF=Ag3xO7UkzFJb1Zndsb1vN3dkWIVVhk8hN3aSCu7oUQDkztdmk3XcEWpPcDjKdCIell1bFZlGL6yERxLm4P7JhTQ.; SUB=_2A250QK35DeRhGeBO61IQ9yvEyT2IHXVXN5gxrDV8PUNbmtAKLW_-kW-ZG_-joiuDIaGQLozdxKVx-1cjBw..; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WWauxJAp_Sb5HC3ovdO-gxG5JpX5K2hUgL.Foq7eh5pS0-Reo22dJLoI7DB-XHkMcvadJ94; SUHB=0S7y95vZV3wB12; ALF=1529221417; SSOLoginState=1497685417; un=18610618644; wvr=6'
+        // "Cookie": 'SINAGLOBAL=2286942856549.21.1488107938571; UM_distinctid=15baf359da7c01-03d9466680a9eb-143d655c-1fa400-15baf359da8b32; _s_tentry=sass.weibo.com; Apache=6564239174790.121.1497437656999; ULV=1497437657072:18:7:4:6564239174790.121.1497437656999:1497357168711; login_sid_t=ea711f2add5a09c677082b8d7ef0dda8; TC-Page-G0=0cd4658437f38175b9211f1336161d7d; un=18610618644; wvr=6; SCF=Ag3xO7UkzFJb1Zndsb1vN3dkWIVVhk8hN3aSCu7oUQDk_9Led6x0_8Xa0BGnzJlvLFB-6OeH3loFXnVICvkovGo.; SUHB=0nleDDRagqUD4b; UOR=,,login.sina.com.cn; SUB=_2AkMuGr6ZdcPxrAVRmPgUy27qboxH-jydz9dvAn7uJhMyAxh87koGqSW4ARVYCzDzXFOpUlEH_3P6QZzTcg..; SUBP=0033WrSXqPxfM72wWs9jqgMF55529P9D9WWauxJAp_Sb5HC3ovdO-gxG5JpVF02RSo27So2RSoBX; WBtopGlobal_register_version=53f16dc9cc6ce8bd'
       }
     }
     let body = await rp(options);
@@ -821,6 +904,7 @@ const crawl_weiboers_bytag = async (tag, page) => {
           break;
       }
     })
+    // console.log(users);
     return users;
   } catch (error) {
     console.error(error);
@@ -836,7 +920,7 @@ const crawl_weiboers_bytag = async (tag, page) => {
 // crawl_articles_byuri('http://weibo.com/tongdaodashu?refer_flag=0000015010_&from=feed&loc=nickname', 1);
 // crawl_follows_byid('2285119444', 2);
 // crawl_fans_byid(2285119444, 1);
-// crawl_weiboers_bytag('http://d.weibo.com/1087030002_2975_1003_4', 1);
+crawl_weiboers_bytag('http://d.weibo.com/1087030002_2975_1003_4', 1);
 
 export {
   crawl_weiboid_byuri,
