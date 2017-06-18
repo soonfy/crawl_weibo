@@ -602,8 +602,9 @@ const crawl_articles_byid = async (id, username, page) => {
         status = 1;
       }
     }
-    console.log(status);
-    console.log(results.length);
+    // console.log(status);
+    // console.log(results.length);
+    console.log(results);
     return {
       status,
       results
@@ -916,11 +917,11 @@ const crawl_weiboers_bytag = async (tag, page) => {
 // crawl_weiboer_byid(1646218964);
 // crawl_weiboer_byuri('http://weibo.com/kujian?refer_flag=0000015010_&from=feed&loc=nickname&is_all=1');
 // crawl_weiboer_byuri(process.argv[2]);
-// crawl_articles_byid(2285119444, 'dotacold', 12);
+crawl_articles_byid(2285119444, 'dotacold', 1);
 // crawl_articles_byuri('http://weibo.com/tongdaodashu?refer_flag=0000015010_&from=feed&loc=nickname', 1);
 // crawl_follows_byid('2285119444', 2);
 // crawl_fans_byid(2285119444, 1);
-crawl_weiboers_bytag('http://d.weibo.com/1087030002_2975_1003_4', 1);
+// crawl_weiboers_bytag('http://d.weibo.com/1087030002_2975_1003_4', 1);
 
 export {
   crawl_weiboid_byuri,
