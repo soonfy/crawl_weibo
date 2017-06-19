@@ -6,6 +6,8 @@ const reg_uid = /\$CONFIG\[\'oid\'\]\=\'([\w\d]+)\'/;
 const reg_fm = /FM.view\((.+)\)/;
 const reg_location = /location\.replace\(\"(.+)\"\)\;/;
 
+import * as weiboCookieCrawler from './weibo_cookie';
+
 /**
  *
  *  @description 过滤 值 为 undefined/null的属性
@@ -845,6 +847,8 @@ const crawl_weiboers_bytag = async (tag, page) => {
     }
     let uri = `${tag}?page=${page}#Pl_Core_F4RightUserList__4`;
     console.log(uri);
+    let cookie = await weiboCookieCrawler.crawl_weibo_cookie();
+    console.log(cookie);
     let options = {
       url: uri,
       method: 'GET',
@@ -853,6 +857,7 @@ const crawl_weiboers_bytag = async (tag, page) => {
       headers: {
         "Host": 'd.weibo.com',
         "User-Agent": 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.81 Safari/537.36',
+        "Cookie": cookie
         // "Cookie": 'SINAGLOBAL=2286942856549.21.1488107938571; UM_distinctid=15baf359da7c01-03d9466680a9eb-143d655c-1fa400-15baf359da8b32; _s_tentry=sass.weibo.com; Apache=6564239174790.121.1497437656999; ULV=1497437657072:18:7:4:6564239174790.121.1497437656999:1497357168711; login_sid_t=ea711f2add5a09c677082b8d7ef0dda8; TC-Page-G0=0cd4658437f38175b9211f1336161d7d; UOR=,,login.sina.com.cn; SCF=Ag3xO7UkzFJb1Zndsb1vN3dkWIVVhk8hN3aSCu7oUQDkztdmk3XcEWpPcDjKdCIell1bFZlGL6yERxLm4P7JhTQ.; SUB=_2A250QK35DeRhGeBO61IQ9yvEyT2IHXVXN5gxrDV8PUNbmtAKLW_-kW-ZG_-joiuDIaGQLozdxKVx-1cjBw..; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9WWauxJAp_Sb5HC3ovdO-gxG5JpX5K2hUgL.Foq7eh5pS0-Reo22dJLoI7DB-XHkMcvadJ94; SUHB=0S7y95vZV3wB12; ALF=1529221417; SSOLoginState=1497685417; un=18610618644; wvr=6'
         // "Cookie": 'SINAGLOBAL=2286942856549.21.1488107938571; UM_distinctid=15baf359da7c01-03d9466680a9eb-143d655c-1fa400-15baf359da8b32; _s_tentry=sass.weibo.com; Apache=6564239174790.121.1497437656999; ULV=1497437657072:18:7:4:6564239174790.121.1497437656999:1497357168711; login_sid_t=ea711f2add5a09c677082b8d7ef0dda8; TC-Page-G0=0cd4658437f38175b9211f1336161d7d; un=18610618644; wvr=6; SCF=Ag3xO7UkzFJb1Zndsb1vN3dkWIVVhk8hN3aSCu7oUQDk_9Led6x0_8Xa0BGnzJlvLFB-6OeH3loFXnVICvkovGo.; SUHB=0nleDDRagqUD4b; UOR=,,login.sina.com.cn; SUB=_2AkMuGr6ZdcPxrAVRmPgUy27qboxH-jydz9dvAn7uJhMyAxh87koGqSW4ARVYCzDzXFOpUlEH_3P6QZzTcg..; SUBP=0033WrSXqPxfM72wWs9jqgMF55529P9D9WWauxJAp_Sb5HC3ovdO-gxG5JpVF02RSo27So2RSoBX; WBtopGlobal_register_version=53f16dc9cc6ce8bd'
       }
@@ -917,7 +922,7 @@ const crawl_weiboers_bytag = async (tag, page) => {
 // crawl_weiboer_byid(1646218964);
 // crawl_weiboer_byuri('http://weibo.com/kujian?refer_flag=0000015010_&from=feed&loc=nickname&is_all=1');
 // crawl_weiboer_byuri(process.argv[2]);
-crawl_articles_byid(2285119444, 'dotacold', 1);
+// crawl_articles_byid(2285119444, 'dotacold', 1);
 // crawl_articles_byuri('http://weibo.com/tongdaodashu?refer_flag=0000015010_&from=feed&loc=nickname', 1);
 // crawl_follows_byid('2285119444', 2);
 // crawl_fans_byid(2285119444, 1);

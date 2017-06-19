@@ -108,7 +108,7 @@ const UserSchema = new Schema({
   update_time: {
     type: Date,
     default: new Date
-  }
+  },
 })
 
 UserSchema.static('updateUser', async (user) => {
