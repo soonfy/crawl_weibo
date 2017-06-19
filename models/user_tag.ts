@@ -10,5 +10,7 @@ const UserTagSchema = new Schema({
   }
 })
 
+UserTagSchema.index({ user_id: 1, user_tag: 1 });
+
 const UserTagModel = mongoose.model('USERTAG', UserTagSchema, 'sina_user_tags');
 export { UserTagModel }
