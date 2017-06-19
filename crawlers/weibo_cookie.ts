@@ -37,7 +37,7 @@ const crawl_weibo_cookie = async () => {
       resp.headers['set-cookie'].map(x => Array.prototype.push.apply(cookies, x.split(/\;\s*/)));
       cookies = _.uniq(cookies);
       let cookie = cookies.join(';');
-      console.log(cookie);
+      // console.log(cookie);
       return cookie;
     }
   } catch (error) {

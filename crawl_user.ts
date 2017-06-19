@@ -5,6 +5,7 @@ import * as weiboTagCrawler from './crawlers/weibo_tag';
 
 import { UserModel } from './models/user';
 import { FollowModel } from './models/user_follows';
+import { UserTagModel } from './models/user_tag';
 
 import * as Config from './config';
 console.log('mongodb url -->', Config.DBURL);
@@ -123,8 +124,14 @@ const crawl_users_bytag = async () => {
       let page = 1;
       let data = await weiboUserCrawler.crawl_weiboers_bytag(tag, page);
       while (data.status === 1) {
+        console.log('tag', tag);
         console.log('page', page);
         for (let user of data.users) {
+          let temp = {
+            user_id: user.id,
+            user_tag: tag.name
+          }
+          await UserTagModel.findOneAndUpdate(temp, { $set: temp }, { upsert: true });
           await crawl_userinfo(user.id);
         }
         page++;

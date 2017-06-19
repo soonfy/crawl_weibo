@@ -95,7 +95,7 @@ const crawl_tag = async () => {
   }
 }
 
-crawl_tag();
+// crawl_tag();
 
 export {
   crawl_tag
