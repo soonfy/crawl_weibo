@@ -120,6 +120,7 @@ const crawl_users_bytag = async () => {
   try {
     let tags = await weiboTagCrawler.crawl_tag();
     // console.log(tags);
+    tags = tags.slice(1);
     for (let tag of tags) {
       let page = 1;
       let data = await weiboUserCrawler.crawl_weiboers_bytag(tag, page);
