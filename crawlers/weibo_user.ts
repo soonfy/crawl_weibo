@@ -245,6 +245,104 @@ const parse_userrelationship = (script) => {
 
 /**
  *
+ *  @description 解析 微博用户 的详细信息
+ *  @param script
+ *
+ */
+const parse_userall = (script) => {
+  try {
+    if (script['domid'].match(/Pl_Official_PersonalInfo__/)) {
+      let $ = cheerio.load(script['html']);
+      let name, sex, address, birth, info, email, personalname, personallink, bloglink, baidu, education, industry, sexlove, relationship, tags, otherlinks, blood_type, sign_time;
+      let lis = $('.WB_cardwrap li');
+      lis.map((i, v) => {
+        let title = $(v).children('.pt_title').text().trim();
+        let detail = $(v).children('.pt_detail').text().trim();
+        switch (true) {
+          case /昵称/.test(title):
+            console.log('...昵称...');
+            name = detail;
+            break;
+          case /所在地/.test(title):
+            console.log('...地址...');
+            name = detail;
+            break;
+          case /性别/.test(title):
+            console.log('...性别...');
+            if (/男/.test(detail)) {
+              sex = 1;
+            } else if (/女/.test(detail)) {
+              sex = 1;
+            } else {
+              sex = 0;
+            }
+            break;
+          case /性取向/.test(title):
+            console.log('...性取向...');
+            sexlove = detail;
+            break;
+          case /感情状况/.test(title):
+            console.log('...感情状况...');
+            relationship = detail;
+            break;
+          case /生日/.test(title):
+            console.log('...生日...');
+            birth = detail;
+            break;
+          case /血型/.test(title):
+            console.log('...血型...');
+            blood_type = detail;
+            break;
+          case /简介/.test(title):
+            console.log('...简介...');
+            info = detail;
+            break;
+          case /注册时间/.test(title):
+            console.log('...注册时间...');
+            sign_time = new Date(detail);
+            break;
+          case /邮箱/.test(title):
+            console.log('...邮箱...');
+            email = detail;
+            break;
+          case /标签/.test(title):
+            console.log('...标签...');
+            tags = [];
+            let tas = $(v).find('a');
+            tas.map((ii, vv) => {
+              tags.push({
+                name: $(vv).text().trim(),
+                link: $(vv).attr('href').trim()
+              });
+            })
+            break;
+          case /友情链接/.test(title):
+            console.log('...友情链接...');
+            otherlinks = [];
+            let las = $(v).find('a');
+            las.map((ii, vv) => {
+              otherlinks.push({
+                name: $(vv).text().trim(),
+                link: $(vv).attr('href').trim()
+              });
+            })
+            break;
+
+          default:
+            console.error(`...未识别的标签...`);
+            break;
+        }
+      })
+      let resp = obj_filter({ name, sex, address, birth, info, email, personalname, personallink, bloglink, baidu, education, industry, sexlove, relationship, tags, otherlinks, blood_type, sign_time });
+      return resp;
+    }
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+/**
+ *
  *  @description 通过 微博id 采集 微博用户 的基本信息
  *  @param id
  *
@@ -370,6 +468,170 @@ const crawl_weiboer_byid = async (id) => {
           break;
         case /Pl_Core_PicTextMixed__/.test(key):
           // console.log('...橱窗...');
+          break;
+
+        case /Pl_Core_Pt6Rank__/.test(key):
+        case /Pl_Official_ProfileFeedNav__/.test(key):
+          // console.log(v['domid']);
+          // console.log('...不知道什么鬼...');
+          break;
+
+        default:
+          console.error('...未做处理的script标签...');
+          console.error(v['domid']);
+          console.error(v);
+          // process.exit();
+          break;
+      }
+    })
+    return user;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+/**
+ *
+ *  @description 通过 微博id 采集 微博用户 的全部信息
+ *  @param id
+ *
+ */
+const crawl_weiboall_byid = async (id) => {
+  try {
+    console.log(id);
+    let user = {
+      _id: id
+    };
+    let uri = `http://weibo.com/p/100505${id}/info?mod=pedit_more`;
+    console.log(uri);
+    let options = {
+      url: uri,
+      method: 'GET',
+      // gzip: true,
+      timeout: 1000 * 60 * 2,
+      headers: {
+        "Host": 'weibo.com',
+        "User-Agent": 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.81 Safari/537.36',
+        "Cookie": 'SINAGLOBAL=2814765473589.067.1484875273060; UM_distinctid=15bad72a54e0-00d24291aaf45a-143e655c-1aeaa0-15bad72a54fbcd; _s_tentry=baike.baidu.com; Apache=7379909336866.972.1494990148978; ULV=1494990149138:24:4:1:7379909336866.972.1494990148978:1494582703733; YF-Ugrow-G0=ad83bc19c1269e709f753b172bddb094; YF-V5-G0=5f9bd778c31f9e6f413e97a1d464047a; YF-Page-G0=091b90e49b7b3ab2860004fba404a078; login_sid_t=b369960338a09b7d9555a79cddb2a7b2; UOR=,,login.sina.com.cn; WBtopGlobal_register_version=4641949e9f3439df; SCF=AtsqdIRs1koTLva1VnsJpX-bIJ1gGWgh3aR67Hj41UVxRa1xtZvEnr0tpuv7kkm_zDiqsA7m9FfMGRtDMsRtGsk.; SUB=_2A250TZaJDeThGeRI41YX8yfMyD-IHXVXOo9BrDV8PUNbmtBeLXTQkW9_dXC8o8_nd4E3g8Ho24lQRIQdtw..; SUBP=0033WrSXqPxfM725Ws9jqgMF55529P9D9W5l1ZOx79CQ1DJcU88uMQTv5JpX5K2hUgL.Fozc1hBce0.7e0e2dJLoI790dcvV9r.t; SUHB=0laUM7st4C26Gc; ALF=1498620249; SSOLoginState=1498015449; un=916946912@qq.com; wvr=6'
+      }
+    }
+    let body = await rp(options);
+    // console.log(body);
+    let match = body.match(reg_location);
+    if (match) {
+      options.url = match[1];
+      body = await rp(options);
+    }
+    // console.log(body);
+    let $ = cheerio.load(body);
+    let scripts = $('script');
+    scripts = scripts.map((i, v) => {
+      let html = $(v).html();
+      let match = html.match(reg_fm);
+      if (match) {
+        let data = JSON.parse(match[1]);
+        return data;
+      }
+    })
+    scripts = scripts.filter((i, v) => {
+      if ('html' in v) {
+        return true;
+      }
+    })
+    scripts.map((i, v) => {
+      // console.log(v);
+      let key = v['domid'];
+      switch (true) {
+        case /Pl_Official_Headerv6__/.test(key):
+          console.log('...页头信息...');
+          let userhead = parse_userhead(v);
+          console.log(userhead);
+          user = _.assign(user, userhead);
+          break;
+        case /Pl_Core_UserInfo__/.test(key):
+          console.log('...用户信息...');
+          let userinfo = parse_userinfo(v);
+          console.log(userinfo);
+          user = _.assign(user, userinfo);
+          break;
+        case /Pl_Core_T8CustomTriColumn__/.test(key):
+          console.log('...用户关系...');
+          let userrelationship = parse_userrelationship(v);
+          console.log(userrelationship);
+          user = _.assign(user, userrelationship);
+          break;
+        case /Pl_Official_PersonalInfo__58/.test(key):
+          console.log('...基本信息...');
+          let userall = parse_userall(v);
+          console.log(userall);
+          user = _.assign(user, userall);
+          break;
+        case /Pl_Official_MyProfileFeed__/.test(key):
+          // console.log('...微博内容...');
+          break;
+
+        case /pl_common_top/.test(key):
+          // console.log('...顶部导航...');
+          break;
+        case /pl_common_footer/.test(key):
+          // console.log('...页脚信息...');
+          break;
+        case /plc_frame/.test(key):
+          // console.log('...页面框架...');
+          break;
+        case /plc_main/.test(key):
+          // console.log('...内容结构...');
+          break;
+        case /Pl_Official_Nav__/.test(key):
+          // console.log('...二级导航...');
+          break;
+        case /Pl_Core_PicText__/.test(key):
+          // console.log('...二级导航作品...');
+          break;
+        case /Pl_Core_CustTab__/.test(key):
+          // console.log('...二级导航服务...');
+          break;
+        case /Pl_Official_LikeMerge__/.test(key):
+          // console.log('...点赞微博...');
+          break;
+        case /Pl_Core_UserGrid__/.test(key):
+          // console.log('...微关系...');
+          break;
+        case /Pl_Core_FansGroups__/.test(key):
+          // console.log('...粉丝群...');
+          break;
+        case /Pl_Core_RecommendFeed__/.test(key):
+          // console.log('...相关推荐...');
+          break;
+        case /Pl_Third_Inline__/.test(key):
+          // console.log('...相册...');
+          break;
+        case /Pl_Official_TimeBase__/.test(key):
+          // console.log('...时间轴...');
+          break;
+        case /Pl_Core_Ut1UserList__/.test(key):
+          // console.log('...粉丝也关注...');
+          break;
+        case /Pl_Core_Pt13PicText__/.test(key):
+          // console.log('...文章...');
+          break;
+        case /Pl_Core_Pt6Rank__/.test(key):
+          // console.log('...乐迷榜...');
+          break;
+        case /Pl_Core_P6Video__/.test(key):
+          // console.log('...视频...');
+          break;
+        case /Pl_Core_PicTextList__/.test(key):
+          // console.log('...视频...');
+          break;
+        case /Pl_Core_P7MultiPicPlay__/.test(key):
+          // console.log('...图片墙...');
+          break;
+        case /Pl_Core_PicTextMixed__/.test(key):
+          // console.log('...橱窗...');
+          break;
+        case /Pl_Official_RightGrowNew__/.test(key):
+          // console.log('...勋章...');
           break;
 
         case /Pl_Core_Pt6Rank__/.test(key):
@@ -709,13 +971,13 @@ const crawl_follows_byid = async (id: string, page: number) => {
       }
     }
     let body = await rp(options);
-    console.log(body);
+    // console.log(body);
     let match = body.match(reg_location);
     if (match) {
       options.url = match[1];
       body = await rp(options);
     }
-    console.log(body);
+    // console.log(body);
     match = body.match(reg_fm);
     let script;
     if (match) {
@@ -927,10 +1189,12 @@ const crawl_weiboers_bytag = async (tag, page) => {
 // crawl_follows_byid('2285119444', 2);
 // crawl_fans_byid(2285119444, 1);
 // crawl_weiboers_bytag('http://d.weibo.com/1087030002_2975_1003_4', 1);
+// crawl_weiboall_byid(6000175821);
 
 export {
   crawl_weiboid_byuri,
   crawl_weiboer_byid,
+  crawl_weiboall_byid,
   crawl_weiboer_byuri,
   crawl_articles_byid,
   crawl_articles_byuri,

@@ -15,6 +15,8 @@ const crawl_userinfo = async (id) => {
   try {
     console.log('crawl weibo id -->', id);
     let user = await weiboUserCrawler.crawl_weiboer_byid(id);
+    let user_all = await weiboUserCrawler.crawl_weiboall_byid(id);
+    user = _.assign(user, user_all);
     // console.log('crawl user ->\r\n', user);
     let _user = await UserModel.updateUser(user);
     // let data = await UserModel.updateUserAndFan(user);
@@ -32,7 +34,7 @@ const crawl_userfollows = async (id) => {
     let data = await weiboUserCrawler.crawl_follows_byid(id, 1);
     let page = 1,
       follows = data.follows;
-    while (data.status === 1) {
+    while (data && data.status === 1) {
       ++page;
       console.log('crawl page --> ', page);
       data = await weiboUserCrawler.crawl_follows_byid(id, page);
@@ -61,7 +63,7 @@ const crawl_userfans = async (id) => {
     let page = 1,
       fans = data.fans;
     console.log(fans);
-    while (data.status === 1) {
+    while (data && data.status === 1) {
       ++page;
       console.log('crawl page --> ', page);
       data = await weiboUserCrawler.crawl_fans_byid(id, page);
@@ -123,7 +125,7 @@ const crawl_users_bytag = async () => {
     for (let tag of tags) {
       let page = 1;
       let data = await weiboUserCrawler.crawl_weiboers_bytag(tag, page);
-      while (data.status === 1) {
+      while (data && data.status === 1) {
         console.log('tag', tag);
         console.log('page', page);
         for (let user of data.users) {

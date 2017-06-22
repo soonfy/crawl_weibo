@@ -19,7 +19,7 @@ const UserSchema = new Schema({
   },
   // 性别
   sex: {
-    type: Number, // 1 - m, 2 - f
+    type: Number, // 0 - 未知, 1 - m, 2 - f
   },
   // 认证
   verify: {
@@ -100,6 +100,14 @@ const UserSchema = new Schema({
   // 友情链接
   otherlinks: {
     type: Array,
+  },
+  // 血型
+  blood_type: {
+    type: String,
+  },
+  // 注册时间
+  sign_time: {
+    type: Date,
   },
   create_time: {
     type: Date,
